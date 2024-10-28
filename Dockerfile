@@ -8,14 +8,15 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 # Install Python packages
-RUN pip3 install --no-cache-dir z3-solver numpy matplotlib jupyter
+RUN pip3 install --no-cache-dir z3-solver numpy matplotlib pandas
 
-# Expose the port that Jupyter runs on
-EXPOSE 8888
+# Copy your Python script into the Docker image
+COPY CDMO_SAT.py /app/CDMO_SAT.py
+COPY check_solution.py /app/check_solution.py
+COPY instances/ /app/instances/
 
-# Run Jupyter Notebook without a token
-CMD ["jupyter", "notebook", "--ip=0.0.0.0", "--no-browser", "--allow-root", "--NotebookApp.token=''"]
-
+# Set the working directory
+WORKDIR /app
 
 # Set Python as the default entrypoint
-#CMD ["python3"]
+CMD ["bash"]
