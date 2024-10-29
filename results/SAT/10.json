@@ -1,7 +1,7 @@
 {
     "first_try": {
-        "time": 300,
-        "optimal": false,
+        "time": 249,
+        "optimal": true,
         "obj": 206,
         "sol": [
             [

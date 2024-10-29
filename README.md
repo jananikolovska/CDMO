@@ -3,7 +3,8 @@
 ### SAT
 
 to do
-- run script for all instances - Jana
+- ~~run script for all instances - Jana~~
+**Done** for up until 14, from 10 onwards they all failed and took too long so for (14-21) I put failed ones
 - run check_solution.py to test locally -Jana
 - run full flow from docker -Jana
 <br>

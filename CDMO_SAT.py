@@ -23,6 +23,9 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     # Initialize the Z3 optimizer
     opt = Optimize()
 
+    # Set a timeout of 300 seconds (300000 ms)
+    opt.set("timeout", 300000)
+
     # Decision Variables:
     # x[i][j] = 1 if courier i is assigned to item j, 0 otherwise
     x = [[Bool(f'x_{i}_{j}') for j in range(num_items)] for i in range(num_couriers)]
@@ -129,6 +132,8 @@ def process_instances_input(inst_path,res_path):
     for filename in os.listdir(inst_path):
         inst_file = os.path.join(inst_path, filename)
         inst_id = int(filename[4:-4])
+        if inst_id <= 11 and inst_id!=4:
+            continue
         if os.path.isfile(inst_file):
             print(f'\tCalculating results for instance {inst_file}')
             with open(inst_file,'r') as inst_file:
