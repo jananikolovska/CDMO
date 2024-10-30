@@ -1,0 +1,7 @@
+% hello_world.mzn
+var 0..10: x;
+var 0..10: y;
+
+constraint x + y == 10;
+
+solve satisfy;
