@@ -3,7 +3,7 @@
 ### CP
 to do 
 - ~~run MiniZinc through Docker flow - Jana&Cico~~
-- change Docker flow to not need to build every time - Cico
+- ~~change Docker flow to not need to build every time - Cico~~
 - update dummy CP script to an initial implementation of our problem
 
 ### SAT
@@ -22,7 +22,7 @@ to do
 **Setup Docker** following the next steps: <br/> 
 1. Download and open Docker
 2. `docker build -t z3_solver .`
-3. `docker run -it z3_solver`
+3. `docker run  -v "$(pwd):/app" -it z3_solver`
 
 **Run CDMO_SAT.py** on setup-ed docker <br/>
 `python3 CDMO_SAT instances results/SAT`
