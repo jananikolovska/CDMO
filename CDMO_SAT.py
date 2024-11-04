@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import json
+from utils.utils import process_instances_input
 
 def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_matrix):
     """
@@ -128,53 +129,12 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     return result
 
 
-def process_instances_input(inst_path,res_path):
-    for filename in os.listdir(inst_path):
-        inst_file = os.path.join(inst_path, filename)
-        inst_id = int(filename[4:-4])
-        if inst_id <= 11 and inst_id!=4:
-            continue
-        if os.path.isfile(inst_file):
-            print(f'\tCalculating results for instance {inst_file}')
-            with open(inst_file,'r') as inst_file:
-                i = 0
-                for line in inst_file:
-                    if i == 0:
-                        n_couriers = int(line)
-                    elif i == 1:
-                        n_items = int(line)
-                        dist_matrix = [None] * (n_items + 1)
-                    elif i == 2:
-                        capacity = [int(x) for x in line.split()]
-                        assert len(capacity) == n_couriers
-                    elif i == 3:
-                        sizes = [int(x) for x in line.split()]
-                        assert len(sizes) == n_items
-                    else:
-                        row = [int(x) for x in line.split()]
-                        assert len(row) == n_items + 1
-                        dist_matrix[i - 4] = [int(x) for x in row]
-                    i += 1
-            for i in range(len(dist_matrix)):
-                assert dist_matrix[i][i] == 0
-            print(f'\tLoaded input instance {inst_path}')
-            result = solve_mcp_z3(n_couriers, n_items, capacity, sizes, dist_matrix)
-            print(result)
-            print(f'\tSolution computed')
-
-            # Full path to the file
-            file_path = os.path.join(res_path, f"{inst_id}.json")
-
-            # Save the JSON data to the file
-            with open(file_path, "w") as json_file:
-                json.dump({"first_try": result}, json_file, indent=4)
-
-            print(f"\tJSON data saved to {file_path}")
-
 if __name__ == "__main__":
     args = sys.argv
+    print('SAT solver started')
     inst_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),args[1])
     os.makedirs(args[2], exist_ok=True)
     res_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),args[2])
-    process_instances_input(inst_path,res_path)
+    process_instances_input(inst_path,res_path,solve_mcp_z3)
+    print('SAT solver done')
 
