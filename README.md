@@ -30,3 +30,6 @@ to do
 **Run check_solutions.py** on setup-ed docker <br/>
 `python3 check_solution.py instances results/SAT`
 
+**Run cp.py** on setup-ed docker <br/>
+`python3 cp.py <instance.dat>`
+
