@@ -16,7 +16,7 @@ def main(file_path):
     gecode = minizinc.Solver.lookup("gecode")
     inst = minizinc.Instance(gecode, model)
 
-    m, n, max_load, weights, distances = utils.read_dat_file(file_path, print_summary = True)
+    m, n, max_load, weights, distances = utils.read_dat_file(file_path, print_summary = False)
 
     inst["m"] = m
     inst["n"] = n
