@@ -13,7 +13,7 @@ to do
 **Done** for up until 14, from 10 onwards they all failed and took too long so for (14-21) I put failed ones
 - ~~run check_solution.py to test locally -Jana~~ 
 **Done** problem with logic of function in CDMO_SAT.py
-- run full flow from docker -Jana
+- ~~run full flow from docker -Jana~~
 - improve logic in CDMO_SAT.py
 <br>
 
@@ -22,13 +22,13 @@ to do
 **Setup Docker** following the next steps: <br/> 
 1. Download and open Docker
 2. `docker build -t z3_solver .`
-3. `docker run  -v "$(pwd):/app" -it z3_solver`
+3. `docker run -v "$(pwd):/app" --name cdmo -it z3_solver`
 
 **Run CDMO_SAT.py** on setup-ed docker <br/>
-`python3 CDMO_SAT instances results/SAT`
+`python3 CDMO_SAT.py instances results/SAT`
 
 **Run check_solutions.py** on setup-ed docker <br/>
-`python3 check_solution.py instances results/SAT`
+`python3 check_solution.py instances results/`
 
 **Run cp.py** on setup-ed docker <br/>
 `python3 cp.py <instance.dat>`
