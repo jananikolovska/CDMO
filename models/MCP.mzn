@@ -76,3 +76,4 @@ constraint max_distance = max(c in 1..m) (total_distance[c]);
 
 % Objective: Minimize the maximum distance traveled by any courier
 solve minimize max_distance;
+% solve satisfy;
