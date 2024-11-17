@@ -3,9 +3,27 @@ import re
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
+import networkx as nx
 import time
+from math import ceil
 import json
 from utils.utils import process_instances_input
+#from utils.smt import solve_mcp_z3
+import random
+
+def round_trip_distance(item, depot, distance_matrix):
+    return distance_matrix[depot][item] + distance_matrix[item][depot]
+
+
+# Compute the lower bound as the max of the round-trip distances for all items
+def compute_lower_bound(depot, num_items, distance_matrix):
+    max_distance = 0
+    for item in range(num_items):
+        # Calculate the round-trip distance for each item
+        round_trip_dist = round_trip_distance(item, depot, distance_matrix)
+        max_distance = max(max_distance, round_trip_dist)
+
+    return max_distance
 
 
 def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_matrix):
@@ -44,19 +62,31 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     # max_distance = the maximum distance traveled by any courier
     max_distance = Int('max_distance')
 
+    # Initial Upper Bound (relaxed bound)
+    upper_bound = sum([sum(row) for row in int_distance_matrix])  # total sum of all distances (relaxed upper bound)
+
+    # Initialize lower bound
+    depot = num_items  # The depot is the last index in the distance matrix
+    lower_bound = compute_lower_bound(depot, num_items, int_distance_matrix)
+
+
+    # Set the initial upper and lower bounds in Z3
+    opt.add(max_distance <= upper_bound)  # Set the upper bound
+
+    # Constraints (same as in your original code, omitted here for brevity)...
+    # Add symmetry breaking, assignment, and other constraints
+
+    # Add bounds:
+    opt.add(max_distance >= lower_bound)  # Set the lower bound
+
+    # Objective: minimize the maximum distance
+    opt.minimize(max_distance)
+
     # Symmetry breaking constraints
 
     # Breaking courier symmetry - Enforce order by distance traveled
     for i in range(num_couriers - 1):
         opt.add(d[i] <= d[i + 1])
-
-    # # Proximity-priority heuristic: encourage closer matches
-    # distance_weights = [[1 / (1 + distance_matrix[0][j]) for j in range(num_items)] for i in range(num_couriers)]
-    # penalty_terms = []
-    # for i in range(num_couriers):
-    #     for j in range(num_items):
-    #         penalty_terms.append(If(x[i][j], distance_weights[i][j], 0))
-    # opt.minimize(Sum(penalty_terms))  # Minimize penalties as part of the objective
 
     # Constraints:
 
@@ -179,7 +209,9 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
         "time": exec_time,
         "optimal": optimal,
         "obj": obj if obj is not None else 0,  # Set to 0 if no objective found
-        "sol": routes
+        "sol": routes,
+        "upper_bound": upper_bound,
+        "lower_bound": lower_bound
     }
 
     # Return the result as a JSON object
