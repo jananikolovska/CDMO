@@ -9,6 +9,17 @@ from utils.utils import process_instances_input
 
 
 def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_matrix):
+    # Sort the items
+    sorted_indices = sorted(range(len(item_sizes)), key=lambda k: item_sizes[k])
+    item_sizes = [item_sizes[i] for i in sorted_indices]
+    sorted_indices = sorted_indices + [len(item_sizes)]
+
+    # Sort the distance matrix rows and columns according to the sorted items
+    int_distance_matrix = [[int_distance_matrix[i][j] for j in sorted_indices] for i in sorted_indices]
+
+    # Sort couriers by capacity (ascending)
+    load_limits.sort()
+
     distance_matrix = [[IntVal(int_distance_matrix[p][q]) for q in range(num_items + 1)]
                        for p in range(num_items + 1)]
 
@@ -33,6 +44,20 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     # max_distance = the maximum distance traveled by any courier
     max_distance = Int('max_distance')
 
+    # Symmetry breaking constraints
+
+    # Breaking courier symmetry - Enforce order by distance traveled
+    for i in range(num_couriers - 1):
+        opt.add(d[i] <= d[i + 1])
+
+    # # Proximity-priority heuristic: encourage closer matches
+    # distance_weights = [[1 / (1 + distance_matrix[0][j]) for j in range(num_items)] for i in range(num_couriers)]
+    # penalty_terms = []
+    # for i in range(num_couriers):
+    #     for j in range(num_items):
+    #         penalty_terms.append(If(x[i][j], distance_weights[i][j], 0))
+    # opt.minimize(Sum(penalty_terms))  # Minimize penalties as part of the objective
+
     # Constraints:
 
     # Each item must be assigned to exactly one courier DEMAND FULFILLMENT
@@ -44,6 +69,14 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
         # Add the load constraint for each courier
         opt.add(Sum([If(x[i][j], item_sizes[j], 0) for j in range(num_items)]) <= load_limits[i])
 
+    # Early Exclusion of Unusable Couriers
+    for i in range(num_couriers):
+        for j in range(num_items):
+            if item_sizes[j] > load_limits[i]:
+                opt.add(Not(x[i][j]))
+                for k in range(j + 1, num_items):
+                    opt.add(Not(x[i][k]))
+
     # Add constraint to prevent staying at the same location
     for i in range(num_couriers):
         for p in range(num_items + 1):
@@ -53,7 +86,6 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     for i in range(num_couriers):
         opt.add(Sum([If(y[i][num_items][q], 1, 0) for q in range(num_items)]) == 1)  # Start at origin
         opt.add(Sum([If(y[i][p][num_items], 1, 0) for p in range(num_items)]) == 1)  # End at origin
-
 
     # Route Continuity and No Revisits
     for i in range(num_couriers):
@@ -128,8 +160,8 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
             routes.append(assigned_items)
             print(f'Courier {i + 1}: Assigned items: {assigned_items}, Distance: {model[d[i]]}')
 
-        # # Optional: Print y and x variables for the first courier (for debugging)
-        # courier_id = 0  # Change as needed
+        # Optional: Print y and x variables for the first courier (for debugging)
+        # courier_id = 1  # Change as needed
         # for p in range(num_items + 1):
         #     for q in range(num_items + 1):
         #         y_val = model.evaluate(y[courier_id][p][q], model_completion=True)
