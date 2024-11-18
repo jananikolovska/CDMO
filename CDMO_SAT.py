@@ -160,42 +160,11 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
         print('5 Elapsed time too much')
         return
 
-    # Tour constraints: each courier starts and ends at the origin
-    # for i in range(num_couriers):
-    #     opt.add(Sum([If(y[i][num_items][q] == 1, 1, 0) for q in range(num_items)]) == 1)  # Start at origin
-    #     opt.add(Sum([If(y[i][p][num_items] == 1, 1, 0) for p in range(num_items)]) == 1)  # End at origin
-    # Start and end at origin using bitwise encoding
-    # Heule encoding: ensure that at most one y[i][p][q] is 1
-    # Heule encoding: ensure that at most one y[i][p][q] is 1
-    for q in range(num_items-1):
-        # Use bitwise OR to combine all y[i][10][q]
-        combined_start = (y[0][num_items][q]==1)  # Start with the first element
-        for i in range(1, num_couriers):
-            combined_start = Or(combined_start, y[i][p][q]==1)  # Bitwise OR across all i for the same q
-
-        # Add the constraint that the sum of y[i][10][q] across all i is <= 1
-        opt.add(If(combined_start, 1, 0) <= 1)
-
-    for p in range(num_items-1):
-        # Use bitwise OR to combine all y[i][10][q]
-        combined_end = (y[0][p][num_items]==1)  # Start with the first element
-        for i in range(1, num_couriers):
-            combined_end = Or(combined_end, y[i][p][q]==1)  # Bitwise OR across all i for the same q
-
-        opt.add(If(combined_end, 1, 0) <= 1)
-
-
-    if check_elapsed_time(start_time, timeout):
-        print('6 Elapsed time too much')
-        return
-
-    # Route Continuity
+    #Route Continuity
     for i in range(num_couriers):
-        for p in range(num_items):  # Excluding depot
-            for q in range(num_items):  # Excluding depot
-                if p != q:
-                    # If y[i][p][q] is True, y[i][q][p] should be False (no return trips)
-                    opt.add(Implies(y[i][p][q] == 1, y[i][q][p] == 0))
+        for p in range(num_items):
+            for q in range(p + 1, num_items):  # Only consider pairs where p < q to avoid duplication
+                opt.add(Implies(y[i][p][q] == 1, y[i][q][p] == 0))
 
     # Ensure no revisits to the same location for each courier
     for i in range(num_couriers):
