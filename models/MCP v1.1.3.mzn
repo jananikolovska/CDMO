@@ -26,16 +26,18 @@ array[COURIERS, NODES] of var 1..(n+1): path;  % Path matrix for each courier
 %        AUXILIARY VARIABLES
 array[1..m,1..n] of var 0..1: packages; % packages[c,i] = 1 means packages i is delivered by c.
 array[1..m] of var int: actual_load;
-var int: UB;
+array [1..2] of var int: UB;
+% var int: UB2;
 var int: LB; 
 array[COURIERS] of var int: total_distance;
 
 %        CONSTRAINTS
 
 %        bounding the distance travelled by each courier
-constraint LB = min(i in ITEMS)(distances[i,n+1]+distances[n+1,i]); % the minimum distance to carry a package.
-constraint UB = sum(i in NODES)(max(j in 1..n+1)(distances[i,j])); % the maximum distance to carry all the packages.
-constraint forall (c in COURIERS)(LB <= total_distance[c] /\  total_distance[c] <= UB);
+constraint LB = max(i in ITEMS)(distances[i,n+1]+distances[n+1,i]); % the minimum distance to carry a package.
+constraint UB[1] = min(i in NODES)(sum(j in 1..n+1)(distances[i,j]));
+constraint UB[2] = min(j in NODES)(sum(i in 1..n+1)(distances[i,j])); % the maximum distance to carry all the packages.
+constraint forall (c in COURIERS)(LB <= max(total_distance[COURIERS]) /\  max(total_distance[COURIERS]) <= min(UB));
 
 %        every row of the path variable must contain hamiltonian subcycles
 constraint forall(c in COURIERS)(alldifferent(path[c,NODES]));
@@ -44,8 +46,8 @@ constraint alldifferent(path[COURIERS,n+1]); % all the couriers must deliver at 
 constraint forall(c in COURIERS)(path[c,n+1]!=n+1);
 
 %        the maximum loads must be respected for each courier, TRY WHICH ONE PERFORM BETTER
-% constraint forall(c in COURIERS)(sum(i in ITEMS where path[c,i]!=i)(weights[i]) <= max_load[c]);
-constraint bin_packing_capa(max_load, assign, weights); % global version
+constraint forall(c in COURIERS)(sum(i in ITEMS where path[c,i]!=i)(weights[i]) <= max_load[c]);
+% constraint bin_packing_capa(max_load, assign, weights); % global version
 
 %        CHANNELING constraints between path and assign
 constraint forall(c in 1..m)(forall(i in 1..n)(
@@ -76,9 +78,11 @@ constraint forall(c in 1..m)(
 %        OTHER PACKAGES CONSTRAINTS
 
 % if every courier sends only a package all the columns of packages must be different (SOMETIMES USEFUL, SOMETIMES NOT ON LARGE INSTANCES)
-constraint alldifferent([assign[i]|i in 1..n]) -> forall (p in 1..n)( % CONSTRAINT NUMBER1
-    alldifferent([packages[c,p]|c in 1..m])
-);
+% constraint alldifferent([assign[i]|i in 1..n]) -> forall (p in 1..n)( % CONSTRAINT NUMBER1
+%     alldifferent([packages[c,p]|c in 1..m])
+% );
+
+
 constraint forall(p in 1..n)(sum(c in 1..m)(packages[c,p]) = 1); % implied constraint with packages. every packages must be shipped by only once
 
 % counting the load
@@ -90,39 +94,41 @@ constraint forall(c in 1..m)(actual_load[c] = sum(p in 1..n where packages[c,p] 
 %        SYMMETRY BREAKING CONSTRAINTS
 
 %        two couriers with the same maximum load can be exchanged
-constraint forall(c1,c2 in 1..m where c1<c2) (
-    (max_load[c1] = max_load[c2])
-    ->(
-    lex_lesseq([assign[p] = c1 | p in 1..n], [assign[p] = c2 | p in 1..n]) 
-    )
-);
+% constraint forall(c1,c2 in 1..m where c1<c2) (
+%     (max_load[c1] = max_load[c2])
+%     ->(
+%     lex_lesseq([assign[p] = c1 | p in 1..n], [assign[p] = c2 | p in 1..n]) 
+%     )
+% );
 
 %        two couriers that haven't filled their capacity can be exchanged (too expensive to compute on large instances. no solution found)
-constraint forall(c1,c2 in 1..m where c1<c2) (
-   %     ((actual_load[c1] <= max_load[c2])/\ (actual_load[c2] <= max_load[c1])) 
-    (max([actual_load[c1],actual_load[c2]])<min([max_load[c1],max_load[c2]])) 
-    ->(
-    lex_lesseq([assign[p] = c1 | p in 1..n], [assign[p] = c2 | p in 1..n])     
-    )
-);
+% constraint forall(c1,c2 in 1..m where c1<c2) (
+%     ((actual_load[c1] <= max_load[c2])/\ (actual_load[c2] <= max_load[c1])) 
+% %     (max([actual_load[c1],actual_load[c2]])<min([max_load[c1],max_load[c2]])) % TO STUDY WHICH ONE IS BETTER
+%     ->(
+%     lex_lesseq([assign[p] = c1 | p in 1..n], [assign[p] = c2 | p in 1..n]) 
+%     )
+% );
+
+constraint decreasing(actual_load);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 %        counting the total distance travelled by each courier
 constraint forall(c in COURIERS)(total_distance[c] = sum(i in NODES) (distances[i,path[c,i]]));
 
-solve minimize max(c in COURIERS)(total_distance[c])
+% solve minimize max(c in COURIERS)(total_distance[c])
 
 
 % Objective: Minimize the maximum distance traveled by any courier
-% solve 
+solve 
 %   :: seq_search([
 %   int_search(assign,dom_w_deg, indomain_random, complete),
-% %     int_search(packages,first_fail, indomain_min, complete), % i'm not sure
+% %     int_search(packages,first_fail, indomain_min, complete), % i'm not sure about the impact
 %   int_search(path, first_fail, indomain_min),        
 % ])
-% ::restart_luby(10)
-% minimize max(c in COURIERS)(total_distance[c]);
+% ::restart_luby(100)
+% % ::int_search(assign,first_fail, indomain_min, complete)
+minimize max(c in COURIERS)(total_distance[c]);
 
 

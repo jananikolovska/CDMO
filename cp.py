@@ -2,14 +2,16 @@
 import sys
 import minizinc
 import time
+import datetime
 from utils import utils
 
 def main(file_path):
+    time_limit = datetime.timedelta(seconds=5)
     start_time = time.time()
     print(f'Using the instance {file_path}\n')  
     
     # # Create a MiniZinc model
-    model = minizinc.Model("models/MCP.mzn")
+    model = minizinc.Model("models/MCP v1.1.1.mzn")
 
 
     # # Transform Model into a instance
@@ -24,18 +26,21 @@ def main(file_path):
     inst["weights"] = weights
     inst["distances"] = distances
 
+    # model.add_file(file_path)
+
 
     # # Solve the instance
-    result = inst.solve()
+    result = inst.solve(timeout=time_limit)
+    stop_time = time.time()
 
     if result.solution:
         print("Optimal Solution:")
         print(result.solution)
         print("")
-        # print(result.solution.assign)
+        print(f'maximum distance = {result["objective"]}')
     else:
         print("No solution found.")
-    stop_time = time.time()
+  
     print(f"execution time: {stop_time-start_time:.2f} sec")
 
 if __name__ == "__main__":
