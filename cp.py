@@ -5,6 +5,7 @@ import time
 import datetime
 import os
 import math
+import json
 from utils import utils
 
 def solve_instance(model_path, instance_path, solver, time_limit):
@@ -72,35 +73,61 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     return result, round(elapsed_time,2)
 
 def main(model_folder, instance_folder, time_limit):
+    res_path = "results/CP"
     time_limit = datetime.timedelta(seconds=time_limit)
     # model_path = "models/MCP v1.1.1.mzn"
     solvers = ["gecode", "chuffed"]
     for model_name in os.listdir(model_folder):
+        print(f"Using model {model_name}")
         model_path = os.path.join(model_folder, model_name)
-        # inst_id = int(filename[4:-4])
         if os.path.isfile(model_path):
             for instance_name in os.listdir(instance_folder):
                 instance_path = os.path.join(instance_folder, instance_name)
-                # inst_id = int(instance_name[4:-4])
+                inst_id = int(instance_name[4:-4])
                 if os.path.isfile(instance_path):
+                    print(f"Solving instance {instance_name}")
                     for solver in solvers:
+                        print(f"Using solver {solver}")
                         result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
                         print(f"results: {result}")
                         print(f"Elapsed time: {elapsed_time} sec.")
 
+                        # output result in a json file
+                        output_file_path = os.path.join(res_path, f"{inst_id}.json")
+                        configuration = solver+'_'+model_name
+
+                        # # Save the JSON data to the file
+                        # with open(output_file_path, "w") as json_file:
+                        #     json.dump({configuration: result}, json_file, indent=4)
+
+                        if os.path.exists(output_file_path):
+                            # Load existing data
+                            with open(output_file_path, "r") as json_file:
+                                existing_data = json.load(json_file)
+                        else:
+                            # If file doesn't exist, start with an empty dictionary
+                            existing_data = {}
+
+                        # Update the data with the new configuration and result
+                        existing_data[configuration] = result
+
+                        # Save the updated data back to the file
+                        with open(output_file_path, "w") as json_file:
+                            json.dump(existing_data, json_file, indent=4)
+
+                        print(f"\tJSON data saved to {output_file_path}")
+                        print("")
+    
+    print("Done!")
+
+
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) > 2:
-    #     print("Usage: python cp.py <path_to_data_file>")
-    #     sys.exit(1)
-    # if len(sys.argv) == 2:
-    #     instance_path = 'instances/' + sys.argv[1]
-    # else: 
-    #     instance_path = 'instances/inst01.dat'
+
     model_path = "models"
     instance_path = "instances"
-    time_limit = 5
+    time_limit = 300
     main(model_path, instance_path, time_limit)
 
 
