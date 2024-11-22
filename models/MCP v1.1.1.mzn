@@ -120,13 +120,13 @@ constraint forall(c in COURIERS)(total_distance[c] = sum(i in NODES) (distances[
 % Objective: Minimize the maximum distance traveled by any courier
 solve 
   :: seq_search([
-  int_search(assign,dom_w_deg, indomain_random, complete),
-%     int_search(packages,first_fail, indomain_min, complete), % i'm not sure about the impact
+  int_search(assign,dom_w_deg, indomain_random),
   int_search(path, dom_w_deg, indomain_random), %dom_w_deg may be the best     
 ])
 :: relax_and_reconstruct(assign,95) 
 ::restart_luby(100)
-% % ::int_search(assign,first_fail, indomain_min, complete)
 minimize max(c in COURIERS)(total_distance[c]);
+
+% till now dom_w_deg with indomain_random and r&r(95) work best
 
 

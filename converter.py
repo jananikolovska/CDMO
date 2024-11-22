@@ -7,7 +7,7 @@ def convert_dat_to_dzn(input_file, output_file):
     n = int(lines[1].strip())
 
     # Estrai max_load
-    max_load = list(map(int, lines[2].strip().split()))
+    max_load = sorted(list(map(int, lines[2].strip().split())))
 
     # Estrai weights
     weights = list(map(int, lines[3].strip().split()))
@@ -31,5 +31,10 @@ def convert_dat_to_dzn(input_file, output_file):
         file.write("|];\n")
 
 # Esempio di utilizzo:
-n = "21"
-convert_dat_to_dzn("instances/inst"+n+".dat", "dat_instances/inst"+n+".dzn")
+for n in range(1,22,1):
+    if n<10:
+        n = "0" + str(n)
+    else:
+        n = str(n)
+    
+    convert_dat_to_dzn("instances/inst"+n+".dat", "dat_instances/inst"+n+"_sorted.dzn")
