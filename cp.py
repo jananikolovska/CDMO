@@ -1,4 +1,3 @@
-
 import sys
 import minizinc
 import time
@@ -9,7 +8,7 @@ import json
 from utils import utils
 
 def solve_instance(model_path, instance_path, solver, time_limit):
-    print(f"Using: {model_path} for solving the instance {instance_path}")
+    print(f"\nUsing: {model_path}\nSolving: {instance_path}\nSolver: {solver}")
     start_time = time.time()
     
     model = minizinc.Model(model_path)
@@ -43,7 +42,7 @@ def solve_instance(model_path, instance_path, solver, time_limit):
         optimal = False
         obj = 0
         sol = None
-    # if a solution is found:
+
     else:
         obj = res["objective"] 
         sol = list()
@@ -52,13 +51,11 @@ def solve_instance(model_path, instance_path, solver, time_limit):
         
         if res.status == minizinc.Status.SATISFIED:
             print(f"[SAT] Solution found! obj = {obj}")
-            print(f"packages = {res['packages']}")
             solving_time = 300
             optimal = False
             
         elif res.status == minizinc.Status.OPTIMAL_SOLUTION:
             print(f"[OPT] Solution found! obj = {obj}")
-            print(f"packages = {res['packages']}")
             solving_time = math.floor(elapsed_time)
             optimal = True
 
@@ -72,63 +69,130 @@ def solve_instance(model_path, instance_path, solver, time_limit):
 
     return result, round(elapsed_time,2)
 
-def main(model_folder, instance_folder, time_limit):
-    res_path = "results/CP"
-    time_limit = datetime.timedelta(seconds=time_limit)
-    # model_path = "models/MCP v1.1.1.mzn"
-    solvers = ["gecode", "chuffed"]
+def main(model_folder, instance_folder, solvers, save_results = True, time_limit=300):
+    res_path = "results/CP/try"
+    time_limit = datetime.timedelta(seconds=int(time_limit))
+
+    if save_results:
+        print(f"Results saving ENABLED on {res_path}")
+    else:
+        print("Results saving DISABLED.")
+
     for model_name in os.listdir(model_folder):
-        print(f"Using model {model_name}")
         model_path = os.path.join(model_folder, model_name)
+
         if os.path.isfile(model_path):
-            for instance_name in os.listdir(instance_folder):
-                instance_path = os.path.join(instance_folder, instance_name)
-                inst_id = int(instance_name[4:-4])
-                if os.path.isfile(instance_path):
-                    print(f"Solving instance {instance_name}")
-                    for solver in solvers:
-                        print(f"Using solver {solver}")
+            for solver in solvers:
+                for instance_name in os.listdir(instance_folder):
+                    instance_path = os.path.join(instance_folder, instance_name)
+                    inst_id = int(instance_name[4:-4])
+
+                    if os.path.isfile(instance_path):
                         result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-                        print(f"results: {result}")
                         print(f"Elapsed time: {elapsed_time} sec.")
 
-                        # output result in a json file
-                        output_file_path = os.path.join(res_path, f"{inst_id}.json")
-                        configuration = solver+'_'+model_name
+                        if save_results:
 
-                        # # Save the JSON data to the file
-                        # with open(output_file_path, "w") as json_file:
-                        #     json.dump({configuration: result}, json_file, indent=4)
+                            output_file_path = os.path.join(res_path, f"{inst_id}.json")
+                            configuration = solver + '_' + model_name
 
-                        if os.path.exists(output_file_path):
-                            # Load existing data
-                            with open(output_file_path, "r") as json_file:
-                                existing_data = json.load(json_file)
-                        else:
-                            # If file doesn't exist, start with an empty dictionary
-                            existing_data = {}
+                            if os.path.exists(output_file_path):
+                                with open(output_file_path, "r") as json_file:
+                                    existing_data = json.load(json_file)
+                            else:
+                                existing_data = {}
 
-                        # Update the data with the new configuration and result
-                        existing_data[configuration] = result
+                            existing_data[configuration] = result
 
-                        # Save the updated data back to the file
-                        with open(output_file_path, "w") as json_file:
-                            json.dump(existing_data, json_file, indent=4)
+                            with open(output_file_path, "w") as json_file:
+                                json.dump(existing_data, json_file, indent=4)
 
-                        print(f"\tJSON data saved to {output_file_path}")
-                        print("")
+                            print(f"data saved ---> {output_file_path}")
+    print("\nDone!")
+
+
+def handle_args(args):
+    if args == []:
+        model_option = "all"
+        instance_option = "all"
+        solver_option = "all"
+
+    elif len(args) != 3:
+        raise ValueError("Invalid arguments. \n\
+            Usage: python3 cp.py <models> <instances> <solvers> <save_results>.\n\
+                <models>: all, sym, lns, plain, custom.\n\
+                    <instances>: all, soft, hard.\n\
+                        <solvers>: all, gecode, chuffed.")
+    else:                    
+        model_option = args[0]
+        instance_option = args[1]
+        solver_option = args[2]
+
+    if model_option == "all":
+        model_folder = "models/all"
     
-    print("Done!")
+    elif model_option == "sym":
+        model_folder = "models/sym"
 
+    elif model_option == "lns":
+        model_folder = "models/lns"
 
+    elif model_option == "plain":
+        model_folder = "models/plain"   
 
+    elif model_option == "custom":
+        model_folder = "models/custom"  
+
+    else:
+        raise ValueError("Invalid model option. \n\
+            Usage: python3 cp.py <models> <instances> <solvers>.\n\
+                Please choose one of the following <models>: all, sym, lns, plain, custom.")
+
+    if instance_option == "all":
+        instance_folder = "instances_CP/all"
+
+    elif instance_option == "soft":
+        instance_folder = "instances_CP/soft"
+    
+    elif instance_option == "hard":
+        instance_folder = "instances_CP/hard"
+
+    elif instance_option == "custom":
+        instance_folder = "instances_CP/custom"
+
+    else:
+        raise ValueError("Invalid instance option. \n\
+            Usage: python3 cp.py <models> <instances> <solvers>.\n\
+                Please choose one of the following <instances>: all, soft, hard, custom.")
+    
+    if solver_option == "all":
+        solvers = ["gecode","chuffed"]
+    elif solver_option == "gecode":
+        solvers = ["gecode"]
+    elif solver_option == "chuffed":
+        solvers = ["chuffed"]
+    else:
+        raise ValueError("Invalid solver option. \n\
+            Usage: python3 cp.py <models> <instances> <solvers>.\n\
+                Please choose one of the following <solvers>: all, gecode, chuffed.")
+
+    print(f"\nRunning {model_option} models on {instance_option} instances with {solver_option} solver(s)!")
+
+    return model_folder, instance_folder, solvers
 
 if __name__ == "__main__":
 
-    model_path = "models"
-    instance_path = "instances"
-    time_limit = 300
-    main(model_path, instance_path, time_limit)
+    model_folder, instance_folder, solvers = handle_args(sys.argv[1:])
+    save_results = True
+    main(model_folder, instance_folder, solvers, save_results)
+
+    # the idea is to execute the program in this way:
+    # python3 cp.py <models> <instances> <solvers> 
+    # python3 cp.py all_models all_instances all_solvers
+    # python3 cp.py sym_models soft_instances gecode
+    # python3 cp.py lns_models hard_instances chuffed
+    # python3 cp.py plain_models hard_instances gecode
+
 
 
 

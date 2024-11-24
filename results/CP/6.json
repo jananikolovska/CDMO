@@ -1,0 +1,83 @@
+{
+    "gecode_plain_bin_packing.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 322,
+        "sol": [
+            [
+                1,
+                7,
+                8
+            ],
+            [
+                6
+            ],
+            [
+                4
+            ],
+            [
+                3
+            ],
+            [
+                5
+            ],
+            [
+                2
+            ]
+        ]
+    },
+    "gecode_plain_no_bin_packing.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 322,
+        "sol": [
+            [
+                1,
+                7,
+                8
+            ],
+            [
+                6
+            ],
+            [
+                3
+            ],
+            [
+                2
+            ],
+            [
+                4
+            ],
+            [
+                5
+            ]
+        ]
+    },
+    "gecode_sym_bin_packing.mzn": {
+        "time": 0,
+        "optimal": true,
+        "obj": 322,
+        "sol": [
+            [
+                7,
+                8
+            ],
+            [
+                5
+            ],
+            [
+                4,
+                6
+            ],
+            [
+                3
+            ],
+            [
+                2
+            ],
+            [
+                1
+            ]
+        ]
+    }
+}
