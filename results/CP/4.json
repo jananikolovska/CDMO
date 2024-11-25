@@ -32,6 +32,105 @@
             ]
         ]
     },
+    "gecode_lns90.mzn": {
+        "time": 2,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                5
+            ],
+            [
+                2
+            ],
+            [
+                10
+            ],
+            [
+                1
+            ],
+            [
+                6,
+                9
+            ],
+            [
+                8
+            ],
+            [
+                4,
+                7
+            ],
+            [
+                3
+            ]
+        ]
+    },
+    "gecode_lns94.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                5
+            ],
+            [
+                2
+            ],
+            [
+                10
+            ],
+            [
+                1
+            ],
+            [
+                6,
+                9
+            ],
+            [
+                8
+            ],
+            [
+                4,
+                7
+            ],
+            [
+                3
+            ]
+        ]
+    },
+    "chuffed_plain_bin_packing.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                8
+            ],
+            [
+                3
+            ],
+            [
+                5
+            ],
+            [
+                6
+            ],
+            [
+                7
+            ],
+            [
+                1,
+                2,
+                9
+            ],
+            [
+                4
+            ],
+            [
+                10
+            ]
+        ]
+    },
     "gecode_plain_no_bin_packing.mzn": {
         "time": 1,
         "optimal": true,
@@ -65,7 +164,40 @@
             ]
         ]
     },
-    "gecode_sym_bin_packing.mzn": {
+    "chuffed_plain_no_bin_packing.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                3
+            ],
+            [
+                8
+            ],
+            [
+                6
+            ],
+            [
+                5
+            ],
+            [
+                7
+            ],
+            [
+                1,
+                2,
+                9
+            ],
+            [
+                4
+            ],
+            [
+                10
+            ]
+        ]
+    },
+    "gecode_sym.mzn": {
         "time": 1,
         "optimal": true,
         "obj": 220,
@@ -92,6 +224,105 @@
             ],
             [
                 2
+            ],
+            [
+                1
+            ]
+        ]
+    },
+    "chuffed_sym.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                9
+            ],
+            [
+                8
+            ],
+            [
+                7
+            ],
+            [
+                6
+            ],
+            [
+                4,
+                10
+            ],
+            [
+                3
+            ],
+            [
+                2,
+                5
+            ],
+            [
+                1
+            ]
+        ]
+    },
+    "gecode_sym_lns90.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                10
+            ],
+            [
+                9
+            ],
+            [
+                8
+            ],
+            [
+                7
+            ],
+            [
+                6
+            ],
+            [
+                3,
+                5
+            ],
+            [
+                2,
+                4
+            ],
+            [
+                1
+            ]
+        ]
+    },
+    "gecode_sym_lns94.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 220,
+        "sol": [
+            [
+                10
+            ],
+            [
+                9
+            ],
+            [
+                8
+            ],
+            [
+                7
+            ],
+            [
+                6
+            ],
+            [
+                3,
+                5
+            ],
+            [
+                2,
+                4
             ],
             [
                 1

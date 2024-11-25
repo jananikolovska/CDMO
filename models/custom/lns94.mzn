@@ -39,7 +39,7 @@ constraint alldifferent(path[COURIERS,n+1]); % all the couriers must deliver a d
 constraint forall(c in COURIERS)(path[c,n+1]!=n+1); % all the couriers must deliver at least one package!
 
 %        the maximum loads must be respected for each courier
-constraint forall(c in COURIERS)(sum(i in ITEMS where path[c,i]!=i)(weights[i]) <= max_load[c]);
+constraint bin_packing_capa(max_load, assign, weights); % global version
 
 %        CHANNELING constraints between path and assign
 constraint forall(c in COURIERS)(forall(i in ITEMS)(
@@ -69,15 +69,21 @@ constraint forall(p in ITEMS)(sum(c in COURIERS)(packages[c,p]) = 1); % implied 
 % counting the actual load
 constraint forall(c in COURIERS)(actual_load[c] = sum(p in ITEMS where packages[c,p] = 1)(weights[p]));
 
-% LARGE INSTANCES WORK GENERALLY WORSE WITH SIMMETRY BREAKING;
-% WITH LITTLE INSTANCES IS FUNDAMENTAL TO PRUNE THE SEARCH.
-
 %        counting the total distance travelled by each courier
 constraint forall(c in COURIERS)(total_distance[c] = sum(i in NODES) (distances[i,path[c,i]]));
 
 % Objective: Minimize the maximum distance traveled by any courier
 
-solve minimize max(c in COURIERS)(total_distance[c]);
+int: percentage = 94;
+
+solve 
+  :: seq_search([
+  int_search(assign,dom_w_deg, indomain_random),
+  int_search(path, dom_w_deg, indomain_random),    
+])
+:: relax_and_reconstruct(assign,percentage) 
+::restart_luby(100)
+minimize max(c in COURIERS)(total_distance[c]);
 
 
 

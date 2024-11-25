@@ -70,7 +70,7 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     return result, round(elapsed_time,2)
 
 def main(model_folder, instance_folder, solvers, save_results = True, time_limit=300):
-    res_path = "results/CP/try"
+    res_path = "results/CP"
     time_limit = datetime.timedelta(seconds=int(time_limit))
 
     if save_results:
@@ -86,28 +86,52 @@ def main(model_folder, instance_folder, solvers, save_results = True, time_limit
                 for instance_name in os.listdir(instance_folder):
                     instance_path = os.path.join(instance_folder, instance_name)
                     inst_id = int(instance_name[4:-4])
+                    
+                    if solver == "gecode" or ("lns" not in model_name): 
+                        if os.path.isfile(instance_path):
+                            try:
+                                result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+                            except Exception as e:
+                                print(f"Error: {e}, let's try again.")
+                                result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+                            print(f"Elapsed time: {elapsed_time} sec.")
 
-                    if os.path.isfile(instance_path):
-                        result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-                        print(f"Elapsed time: {elapsed_time} sec.")
+                            if save_results:
 
-                        if save_results:
+                                output_file_path = os.path.join(res_path, f"{inst_id}.json")
+                                configuration = solver + '_' + model_name
 
-                            output_file_path = os.path.join(res_path, f"{inst_id}.json")
-                            configuration = solver + '_' + model_name
+                                if os.path.exists(output_file_path):
+                                    with open(output_file_path, "r") as json_file:
+                                        existing_data = json.load(json_file)
+                                else:
+                                    existing_data = {}
 
-                            if os.path.exists(output_file_path):
-                                with open(output_file_path, "r") as json_file:
-                                    existing_data = json.load(json_file)
-                            else:
-                                existing_data = {}
+                                existing_data[configuration] = result
 
-                            existing_data[configuration] = result
+                                with open(output_file_path, "w") as json_file:
+                                    json.dump(existing_data, json_file, indent=4)
 
-                            with open(output_file_path, "w") as json_file:
-                                json.dump(existing_data, json_file, indent=4)
+                                print(f"data saved ---> {output_file_path}")
+    print("\nDone!")
 
-                            print(f"data saved ---> {output_file_path}")
+def main_superuser(model_path, instance_path, solver, time_limit=300):
+    time_limit = datetime.timedelta(seconds=int(time_limit))
+
+    print("Results saving DISABLED in superuser mode.")
+  
+    if solver == "gecode" or ("lns" not in model_path): 
+        try:
+            result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+        except Exception as e:
+            print(f"Error: {e}, let's try again.")
+            result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+        print(f"Elapsed time: {elapsed_time} sec.")
+
+    else:
+        print("Chuffed solver is not compatible with lns models. exiting...")
+        exit(1)
+
     print("\nDone!")
 
 
@@ -116,6 +140,25 @@ def handle_args(args):
         model_option = "all"
         instance_option = "all"
         solver_option = "all"
+
+    elif len(args) == 1 and args[0] == "superuser":
+        # read from keyboard the model
+        model_folder = "models/all/" + input("Type the name of the model you want to use: ")
+        while(not os.path.isfile(model_folder)):
+            model_folder = "models/all/" + input(f"{model_folder} doesn't exist! Try again: ")
+        print("")
+
+        instance_folder = "instances_CP/all/" + input("Type the name of the instance to solve: ")
+        while(not os.path.isfile(instance_folder)):
+            instance_folder = "instances_CP/all/" + input(f"{instance_folder} doesn't exist! Try again: ")
+        print("")
+
+        solvers = input('Select the solver ("gecode" or "chuffed"): \nnote: chuffed solver is not compatible with lns models!\n')
+        while(solvers not in ["gecode","chuffed"]):
+             solvers = input(f"{solvers} doesn't exist! Try again: ")
+        print("")
+
+        return model_folder, instance_folder, solvers
 
     elif len(args) != 3:
         raise ValueError("Invalid arguments. \n\
@@ -180,11 +223,17 @@ def handle_args(args):
 
     return model_folder, instance_folder, solvers
 
+
 if __name__ == "__main__":
 
     model_folder, instance_folder, solvers = handle_args(sys.argv[1:])
     save_results = True
-    main(model_folder, instance_folder, solvers, save_results)
+    
+    if sys.argv[1] == "superuser":
+        main_superuser(model_folder, instance_folder, solvers)
+    else:
+        main(model_folder, instance_folder, solvers, save_results)
+
 
     # the idea is to execute the program in this way:
     # python3 cp.py <models> <instances> <solvers> 
@@ -193,6 +242,9 @@ if __name__ == "__main__":
     # python3 cp.py lns_models hard_instances chuffed
     # python3 cp.py plain_models hard_instances gecode
 
+    # there exist a superuser mode to run specific models with specific instances.
+    # python3 cp.py superuser
+    # everything will be guided
 
 
 
