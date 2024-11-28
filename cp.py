@@ -5,17 +5,39 @@ import datetime
 import os
 import math
 import json
+import numpy as np
 from utils import utils
+
+def build_solution(res):
+    packages = res["packages"]
+    path = res["path"]
+    sol = list()
+
+    for c, package in enumerate(packages):
+        items = list()
+        count = np.count_nonzero(package)
+        index = len(package) # starting from depot
+
+        for _ in range(count) :
+            items.append(path[c][index])
+            index = path[c][index] - 1 #  -1 because index starts from 0
+        sol.append(items)
+
+    return sol
 
 def solve_instance(model_path, instance_path, solver, time_limit):
     print(f"\nUsing: {model_path}\nSolving: {instance_path}\nSolver: {solver}")
     start_time = time.time()
+
+    error = False
+    sorted = "ordered" in model_path
+    print(f"SORTED: {sorted}")
     
     model = minizinc.Model(model_path)
     solver = minizinc.Solver.lookup(solver)
     inst = minizinc.Instance(solver, model)
 
-    m, n, max_load, weights, distances = utils.read_dat_file(instance_path, print_summary = False)
+    m, n, max_load, weights, distances = utils.read_dat_file(instance_path, sorted=sorted, print_summary = False)
 
     inst["m"] = m
     inst["n"] = n
@@ -23,14 +45,22 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     inst["weights"] = weights
     inst["distances"] = distances
 
-    res = inst.solve(timeout=time_limit)
+    try:
+        res = inst.solve(timeout=time_limit)
+    except Exception as e:
+        print(f"Error: {e}")
+        error = True
+        print("[ERR] No solution found.")
+         
     stop_time = time.time()
     elapsed_time = stop_time - start_time
 
     solving_time, optimal, obj, sol = None, None, None, None
-    print(f"STATUS = {res.status}")
-    if res.status == minizinc.Status.UNKNOWN:
-        print("[UNK] Time limit reached. No solution found.")
+    # print(f"STATUS = {res.status}")
+
+    if error or res.status == minizinc.Status.UNKNOWN:
+        if not error:
+            print("[UNK] Time limit reached. No solution found.") 
         solving_time = 300
         optimal = False
         obj = 0
@@ -45,9 +75,10 @@ def solve_instance(model_path, instance_path, solver, time_limit):
 
     else:
         obj = res["objective"] 
-        sol = list()
-        for package in res["packages"]:
-            sol.append([i+1 for i in range(len(package)) if package[i] == 1])
+        # sol = list()
+        # for package in res["packages"]:
+        #     sol.append([i+1 for i in range(len(package)) if package[i] == 1])
+        sol = build_solution(res)
         
         if res.status == minizinc.Status.SATISFIED:
             print(f"[SAT] Solution found! obj = {obj}")
@@ -69,6 +100,7 @@ def solve_instance(model_path, instance_path, solver, time_limit):
 
     return result, round(elapsed_time,2)
 
+
 def main(model_folder, instance_folder, solvers, save_results = True, time_limit=300):
     res_path = "results/CP"
     time_limit = datetime.timedelta(seconds=int(time_limit))
@@ -89,11 +121,13 @@ def main(model_folder, instance_folder, solvers, save_results = True, time_limit
                     
                     if solver == "gecode" or ("lns" not in model_name): 
                         if os.path.isfile(instance_path):
-                            try:
-                                result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-                            except Exception as e:
-                                print(f"Error: {e}, let's try again.")
-                                result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+                            # try:
+                            #     result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+                            # except Exception as e:
+                            #     print(f"Error: {e}")
+                            #     print("Saving default results.")
+                            result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+                        
                             print(f"Elapsed time: {elapsed_time} sec.")
 
                             if save_results:
@@ -115,17 +149,20 @@ def main(model_folder, instance_folder, solvers, save_results = True, time_limit
                                 print(f"data saved ---> {output_file_path}")
     print("\nDone!")
 
+
 def main_superuser(model_path, instance_path, solver, time_limit=300):
     time_limit = datetime.timedelta(seconds=int(time_limit))
 
     print("Results saving DISABLED in superuser mode.")
   
     if solver == "gecode" or ("lns" not in model_path): 
-        try:
-            result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-        except Exception as e:
-            print(f"Error: {e}, let's try again.")
-            result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+        # try:
+        #     result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+        # except Exception as e:
+        #     print(f"Error: {e}, let's try again.")
+        #     result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+
+        result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
         print(f"Elapsed time: {elapsed_time} sec.")
 
     else:
@@ -233,7 +270,6 @@ if __name__ == "__main__":
         main_superuser(model_folder, instance_folder, solvers)
     else:
         main(model_folder, instance_folder, solvers, save_results)
-
 
     # the idea is to execute the program in this way:
     # python3 cp.py <models> <instances> <solvers> 

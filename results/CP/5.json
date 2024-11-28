@@ -13,48 +13,6 @@
             ]
         ]
     },
-    "gecode_lns90.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
-    "gecode_lns94.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
-    "chuffed_plain_bin_packing.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
     "gecode_plain_no_bin_packing.mzn": {
         "time": 0,
         "optimal": true,
@@ -69,63 +27,7 @@
             ]
         ]
     },
-    "chuffed_plain_no_bin_packing.mzn": {
-        "time": 0,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
     "gecode_sym.mzn": {
-        "time": 0,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
-    "chuffed_sym.mzn": {
-        "time": 0,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
-    "gecode_sym_lns90.mzn": {
-        "time": 0,
-        "optimal": true,
-        "obj": 206,
-        "sol": [
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
-    "gecode_sym_lns94.mzn": {
         "time": 1,
         "optimal": true,
         "obj": 206,
@@ -138,5 +40,11 @@
                 3
             ]
         ]
+    },
+    "gecode_sym_ordered.mzn": {
+        "time": 0,
+        "optimal": false,
+        "obj": 0,
+        "sol": null
     }
 }

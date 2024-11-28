@@ -6,116 +6,35 @@
         "sol": [
             [
                 1,
-                7,
-                8
-            ],
-            [
-                6
-            ],
-            [
-                3
-            ],
-            [
-                2
-            ],
-            [
-                5
-            ],
-            [
-                4
-            ]
-        ]
-    },
-    "gecode_lns90.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 322,
-        "sol": [
-            [
-                5
-            ],
-            [
-                2,
-                6
-            ],
-            [
-                1
-            ],
-            [
-                8
-            ],
-            [
-                4,
+                8,
                 7
             ],
             [
+                6
+            ],
+            [
+                4
+            ],
+            [
                 3
-            ]
-        ]
-    },
-    "gecode_lns94.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 322,
-        "sol": [
+            ],
             [
                 5
             ],
             [
                 2
-            ],
-            [
-                1
-            ],
-            [
-                6
-            ],
-            [
-                3,
-                4
-            ],
-            [
-                7,
-                8
-            ]
-        ]
-    },
-    "chuffed_plain_bin_packing.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 322,
-        "sol": [
-            [
-                6
-            ],
-            [
-                2,
-                4
-            ],
-            [
-                3
-            ],
-            [
-                1
-            ],
-            [
-                7,
-                8
-            ],
-            [
-                5
             ]
         ]
     },
     "gecode_plain_no_bin_packing.mzn": {
-        "time": 1,
+        "time": 0,
         "optimal": true,
         "obj": 322,
         "sol": [
             [
                 1,
-                7,
-                8
+                8,
+                7
             ],
             [
                 6
@@ -131,38 +50,11 @@
             ],
             [
                 5
-            ]
-        ]
-    },
-    "chuffed_plain_no_bin_packing.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 322,
-        "sol": [
-            [
-                3
-            ],
-            [
-                5
-            ],
-            [
-                4
-            ],
-            [
-                1,
-                2,
-                7
-            ],
-            [
-                6
-            ],
-            [
-                8
             ]
         ]
     },
     "gecode_sym.mzn": {
-        "time": 0,
+        "time": 1,
         "optimal": true,
         "obj": 322,
         "sol": [
@@ -188,84 +80,30 @@
             ]
         ]
     },
-    "chuffed_sym.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 322,
-        "sol": [
-            [
-                8
-            ],
-            [
-                7
-            ],
-            [
-                5
-            ],
-            [
-                4,
-                6
-            ],
-            [
-                2
-            ],
-            [
-                1,
-                3
-            ]
-        ]
-    },
-    "gecode_sym_lns90.mzn": {
+    "gecode_sym_ordered.mzn": {
         "time": 0,
         "optimal": true,
         "obj": 322,
         "sol": [
             [
-                8
-            ],
-            [
+                1,
+                8,
                 7
             ],
             [
-                6
+                2
+            ],
+            [
+                3
             ],
             [
                 5
             ],
             [
-                2,
-                3,
-                4
-            ],
-            [
-                1
-            ]
-        ]
-    },
-    "gecode_sym_lns94.mzn": {
-        "time": 1,
-        "optimal": true,
-        "obj": 322,
-        "sol": [
-            [
-                8
-            ],
-            [
-                7
-            ],
-            [
                 6
             ],
             [
-                5
-            ],
-            [
-                2,
-                3,
                 4
-            ],
-            [
-                1
             ]
         ]
     }

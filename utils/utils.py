@@ -46,13 +46,16 @@ def generate_hex_colors(size):
 #   plt.show()
 
 # Function to read the .dat file and store first four lines
-def read_dat_file(file_path, print_summary = False):
+def read_dat_file(file_path, sorted = False, print_summary = False):
     with open(file_path, 'r') as file:
         # Read the first four lines
         m = int(file.readline().strip())  # First line
         n = int(file.readline().strip())  # Second line
         load_sizes = list(map(int, file.readline().strip().split()))  # Third line
         item_sizes = list(map(int, file.readline().strip().split()))  # Fourth line
+
+        if sorted:
+            load_sizes.sort()
 
         # Read the rest of the data into a list (if needed)
         data = []

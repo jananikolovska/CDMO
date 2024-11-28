@@ -69,21 +69,16 @@ constraint forall(p in ITEMS)(sum(c in COURIERS)(packages[c,p]) = 1); % implied 
 % counting the actual load
 constraint forall(c in COURIERS)(actual_load[c] = sum(p in ITEMS where packages[c,p] = 1)(weights[p]));
 
+%        SYMMETRY BREAKING CONSTRAINTS
+
+constraint decreasing(actual_load[COURIERS]);
+
 %        counting the total distance travelled by each courier
 constraint forall(c in COURIERS)(total_distance[c] = sum(i in NODES) (distances[i,path[c,i]]));
 
 % Objective: Minimize the maximum distance traveled by any courier
 
-int: percentage = 94;
-
-solve 
-  :: seq_search([
-  int_search(assign,dom_w_deg, indomain_random),
-  int_search(path, dom_w_deg, indomain_random),    
-])
-:: relax_and_reconstruct(assign,percentage) 
-::restart_luby(100)
-minimize max(c in COURIERS)(total_distance[c]);
+solve minimize max(c in COURIERS)(total_distance[c]);
 
 
 
