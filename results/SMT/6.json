@@ -1,28 +1,28 @@
 {
-    "first_try": {
-        "time": 1,
+    "try_without_optimal": {
+        "time": 0,
         "optimal": true,
-        "obj": 226,
+        "obj": 322,
         "sol": [
             [
-                1
+                2
             ],
             [
-                2,
-                5,
                 8
             ],
             [
-                4
+                6
             ],
             [
-                7
-            ],
-            [
+                7,
                 3
             ],
             [
-                6
+                5,
+                4
+            ],
+            [
+                1
             ]
         ]
     }
