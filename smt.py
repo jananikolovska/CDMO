@@ -1,19 +1,37 @@
 from z3 import *
-import re
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
-import networkx as nx
 import time
-from math import ceil
-import json
-from itertools import permutations
-from utils.utils import process_instances_input, current_datetime
-#from utils.smt import solve_mcp_z3
-import random
+from utils.utils_jana import process_instances_input, current_datetime
 
 def round_trip_distance(item, depot, distance_matrix):
     return distance_matrix[depot][item] + distance_matrix[item][depot]
+
+def extract_ordered_route(model, courier_id, num_items,x, y, d,item_encodings):
+    print('TUKS')
+    ordered_route = []
+    assigned_items = [j for j in range(num_items) if is_true(model.evaluate(x[courier_id][j]))]
+    # TODO: print([j for j in range(num_items) if is_true(model.evaluate(y[courier_id][num_items][j]))])
+    for p1 in range(num_items+1):
+        for q1 in range(num_items+1):
+            if model.evaluate(y[courier_id][p1][q1]):
+                print(f"p1 {p1} q1 {q1} {model.evaluate(y[courier_id][p1][q1])}")
+    print(f" Distance {model.evaluate(d[courier_id])}")
+    current_location = num_items
+    while True:
+        for q in assigned_items + [num_items]:
+            #print(f"p {current_location} q {q}")
+            #print(model.evaluate(y[courier_id][current_location][q]))
+            if current_location!=q and is_true(model.evaluate(y[courier_id][current_location][q])):
+                ordered_route.append(q)
+                print(ordered_route)
+                if len(ordered_route) == len(assigned_items):
+                    #return [k+1 for k in ordered_route]
+                    print(f"Ordered {[k+1 for k in ordered_route]}")
+                    print(assigned_items)
+                    print('VRANJAM')
+                    return [item_encodings.get(k+1) for k in ordered_route]
+                current_location = q
+                break
+    return
 
 def check_elapsed_time(start_time,timeout,print_time=True):
     elapsed_time = time.time() - start_time
@@ -66,15 +84,17 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
 
     start_time = time.time()
     # Sort the items
-    sorted_indices = sorted(range(len(item_sizes)), key=lambda k: item_sizes[k])
-    item_sizes = [item_sizes[i] for i in sorted_indices]
-    sorted_indices = sorted_indices + [len(item_sizes)]
+    sorted_indices_item = sorted(range(len(item_sizes)), key=lambda k: item_sizes[k])
+    item_sizes = [item_sizes[i] for i in sorted_indices_item]
+    sorted_indices_item = sorted_indices_item + [len(item_sizes)]
+    item_encodings = dict(zip(list(range(1,num_items+1)),[inx +1 for inx in sorted_indices_item]))
 
     # Sort the distance matrix rows and columns according to the sorted items
-    int_distance_matrix = [[int_distance_matrix[i][j] for j in sorted_indices] for i in sorted_indices]
+    int_distance_matrix = [[int_distance_matrix[i][j] for j in sorted_indices_item] for i in sorted_indices_item]
 
     # Sort couriers by capacity (ascending)
-    load_limits.sort()
+    sorted_indices_load = sorted(range(len(load_limits)), key=lambda k: load_limits[k])
+    load_limits = [load_limits[i] for i in sorted_indices_load]
 
     distance_matrix = [[IntVal(int_distance_matrix[p][q]) for q in range(num_items + 1)]
                        for p in range(num_items + 1)]
@@ -85,8 +105,10 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
 
     # y[i][p][q] is now a bitvector instead of a bool matrix
     # y[i][p][q] = 1 if courier i travels from point p to point q, 0 otherwise
-    y = [[[BitVec(f'y_{i}_{p}_{q}', 1) for q in range(num_items + 1)]
+    y = [[[Bool(f'y_{i}_{p}_{q}') for q in range(num_items + 1)]
           for p in range(num_items + 1)] for i in range(num_couriers)]
+
+    order = [[Int(f"order_{i}_{j}") for j in range(num_items)] for i in range(num_couriers)]
 
     # d[i] = total distance traveled by courier i
     d = [Int(f'd_{i}') for i in range(num_couriers)]
@@ -103,7 +125,6 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     opt.add(max_distance >= lower_bound)
     log(f"Bounds set. Upper: {upper_bound}, Lower: {lower_bound}")
 
-
     # Breaking courier symmetry - Enforce order by distance traveled
     for i in range(num_couriers - 1):
         opt.add(d[i] <= d[i + 1])
@@ -114,6 +135,7 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
 
     # Constraints:
     log("Adding constraints...")
+
     # Each item must be assigned to exactly one courier DEMAND FULFILLMENT
     for j in range(num_items):
         opt.add(Sum([If(x[i][j], 1, 0) for i in range(num_couriers)]) == 1)
@@ -121,6 +143,16 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     if check_elapsed_time(start_time, timeout):
         print('2 Elapsed time too much')
         return
+
+    # Iterate over couriers and items
+    for i in range(num_couriers):
+        for k in range(num_items):
+            # Create the sum of x[i][j] over all j items
+            sum_x = Sum([If(x[i][j], 1, 0) for j in range(num_items)])
+
+            # Check if sum_x > 1, then add the condition that you can't have both transitions
+            opt.add(Implies(sum_x > 1,
+                            Not(And(y[i][num_items][k], y[i][k][num_items]))))
 
     # Each courier's load must not exceed their capacity CAPACITY CONSTRAINT
     for i in range(num_couriers):
@@ -148,55 +180,57 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
         opt.add(Sum([x[i][j] for j in range(num_items)]) >= 1)
 
     if check_elapsed_time(start_time, timeout):
-        print('4.5 Elapsed time too much')
-        return
-
-    # Add constraint to prevent staying at the same location
-    for i in range(num_couriers):
-        for p in range(num_items + 1):
-            opt.add(y[i][p][p] == 0)  # Ensure no self-loop (y[i][p][p] = 0)
-
-    if check_elapsed_time(start_time, timeout):
         print('5 Elapsed time too much')
         return
 
     #Route Continuity
     for i in range(num_couriers):
         for p in range(num_items):
+            opt.add(Not(y[i][p][p]))  # Ensure no self-loop (y[i][p][p] = 0)
             for q in range(p + 1, num_items):  # Only consider pairs where p < q to avoid duplication
-                opt.add(Implies(y[i][p][q] == 1, y[i][q][p] == 0))
+                opt.add(Implies(y[i][p][q], Not(y[i][q][p])))
 
-    # Ensure no revisits to the same location for each courier
     for i in range(num_couriers):
         for p in range(num_items):
-            opt.add(And([
-                Implies(And(y[i][p][q] == 1, y[i][q][r] == 1), y[i][r][p] == 0)
-                for q in range(num_items) for r in range(num_items)
-                if q != p and r != p and q != r
-            ]))
-
-    if check_elapsed_time(start_time, timeout):
-        print('7 Elapsed time too much')
-        return
-
-    # Route Continuity: Only include y[i][p][q] if x[i][q] is true (i.e., courier i is assigned to item q)
+            opt.add(Implies(Not(x[i][p]), order[i][p] < 0))
+            opt.add(Implies(x[i][p], order[i][p] > 0))
+            for q in range(num_items):
+                # If there is a transition from p to q, enforce order[p] < order[q]
+                opt.add(Implies(y[i][p][q], order[i][p] < order[i][q]))
     for i in range(num_couriers):
-        for p in range(num_items + 1):  # Including depot
-            for q in range(num_items):  # Exclude depot as it's only the starting/ending point
-                opt.add(Implies(y[i][p][q] == 1, x[i][q]))
+        opt.add(Distinct([order[i][p] for p in range(num_items)]))
+
+    # # Ensure no revisits to the same location for each courier
+    # for i in range(num_couriers):
+    #     for p in range(num_items):
+    #         opt.add(And([
+    #             Implies(And(y[i][p][q] == 1, y[i][q][r] == 1), y[i][r][p] == 0)
+    #             for q in range(num_items) for r in range(num_items)
+    #             if q != p and r != p and q != r
+    #         ]))
 
     if check_elapsed_time(start_time, timeout):
-        print('8 Elapsed time too much')
+        print('6 Elapsed time too much')
         return
+
+    # # Route Continuity: Only include y[i][p][q] if x[i][q] is true (i.e., courier i is assigned to item q)
+    # for i in range(num_couriers):
+    #     for p in range(num_items + 1):  # Including depot
+    #         for q in range(num_items):  # Exclude depot as it's only the starting/ending point
+    #             opt.add(Implies(y[i][p][q] == 1, x[i][q]))
+
 
     # Preventing redundant "revisits" to a location by ensuring only allowed transitions
     for i in range(num_couriers):
         for j in range(num_items):
-            opt.add(Sum([If(y[i][p][j] == 1, 1, 0) for p in range(num_items + 1)]) == If(x[i][j], 1, 0))
-            opt.add(Sum([If(y[i][j][q] == 1, 1, 0) for q in range(num_items + 1)]) == If(x[i][j], 1, 0))
+            opt.add(Sum([If(y[i][p][j], 1, 0) for p in range(num_items + 1)]) == If(x[i][j], 1, 0))
+            opt.add(Sum([If(y[i][j][q], 1, 0) for q in range(num_items + 1)]) == If(x[i][j], 1, 0))
+        opt.add(Not(y[i][num_items][num_items]))
+        opt.add(Sum([If(y[i][p][num_items], 1, 0) for p in range(num_items + 1)]) == 1)
+        opt.add(Sum([If(y[i][num_items][q], 1, 0) for q in range(num_items + 1)]) == 1)
 
     if check_elapsed_time(start_time, timeout):
-        print('9 Elapsed time too much')
+        print('7 Elapsed time too much')
         return
 
     # Calculate total distance for each courier
@@ -209,7 +243,7 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
             for q in range(num_items + 1):  # Including depot
                 # Use an integer value for distance matrix
                 distance = distance_matrix[p][q]  # Make sure this is an integer
-                distance_terms.append(If(y[i][p][q] == 1, distance, 0))
+                distance_terms.append(If(y[i][p][q], distance, 0))
 
         # Add the constraint for the total distance for courier i
         opt.add(d[i] == Sum(distance_terms))
@@ -221,10 +255,11 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     # Objective: minimize the maximum distance
     opt.minimize(max_distance)
     log("Starting solver...")
-    opt.set("timeout", (timeout - int(time.time() - start_time)) * 1000)
-    log(f"Timeout: {timeout - int(time.time() - start_time)}")
+    time_left = max(1,timeout - int(time.time() - start_time))
+    opt.set("timeout", time_left * 1000)
+    log(f"Timeout: {time_left}")
     current_datetime()
-
+    log('cico <3')
     # Solve the problem with a timer
     result = opt.check()
     runtime = time.time() - start_time
@@ -232,16 +267,17 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
     optimal = False
     obj = None
     routes = []
+    ended = ""
 
     if result == sat or result == unknown:
-        if result == unknown:
-            opt.reason_unknown()
         model = opt.model()
         # If the result is sat, we assume it's optimal
         if result == sat:
             optimal = True
+            ended = "SAT"
         else:
             optimal = False  # Unknown means timeout reached without proving optimality
+            ended = "Timeout"
 
         # Extract the objective value
         if model.eval(max_distance, model_completion=True) is not None:
@@ -249,21 +285,14 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
 
         # Extract routes for each courier
         for i in range(num_couriers):
-            assigned_items = [j + 1 for j in range(num_items) if is_true(model.evaluate(x[i][j]))]
-            routes.append(assigned_items)
-            log(f'Courier {i + 1}: Assigned items: {assigned_items}, Distance: {model[d[i]]}')
-
-        # Optional: Print y and x variables for the first courier (for debugging)
-        # courier_id = 1  # Change as needed
-        # for p in range(num_items + 1):
-        #     for q in range(num_items + 1):
-        #         y_val = model.evaluate(y[courier_id][p][q], model_completion=True)
-        #         print(f"y[{courier_id}][{p}][{q}] = {y_val}")
-        # for p in range(num_items):
-        #     x_val = model.evaluate(x[courier_id][p], model_completion=True)
-        #     print(f"x[{courier_id}][{p}] = {x_val}")
+            # assigned_items = [j + 1 for j in range(num_items) if is_true(model.evaluate(x[i][j]))]
+            # routes.append(assigned_items)
+            route = extract_ordered_route(model, i, num_items,x, y, d, item_encodings)
+            routes.append(route)
+            log(f'Courier {i + 1}: Assigned items: {route}, Distance: {model[d[i]]}')
     else:
         log("No solution found.")
+        ended = "No solution exists"
 
     exec_time = min(int(runtime), timeout)
 
@@ -272,9 +301,7 @@ def solve_mcp_z3(num_couriers, num_items, load_limits, item_sizes, int_distance_
         "time": exec_time,
         "optimal": optimal,
         "obj": obj if obj is not None else 0,  # Set to 0 if no objective found
-        "sol": routes,
-        "upper_bound": upper_bound,
-        "lower_bound": lower_bound
+        "sol":  [routes[i] for i in sorted_indices_load]
     }
 
     return result
@@ -287,4 +314,3 @@ if __name__ == "__main__":
     res_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),args[2])
     process_instances_input(inst_path,res_path,solve_mcp_z3,"try_without_optimal",verbose=True)
     print('SAT solver done')
-
