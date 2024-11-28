@@ -118,5 +118,11 @@
                 1
             ]
         ]
+    },
+    "gecode_sym_ordered.mzn": {
+        "time": 300,
+        "optimal": false,
+        "obj": 0,
+        "sol": null
     }
 }
