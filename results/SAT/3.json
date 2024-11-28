@@ -1,21 +1,21 @@
 {
-    "try_without_optimal": {
+    "first_try": {
         "time": 0,
         "optimal": true,
-        "obj": 12,
+        "obj": 6,
         "sol": [
             [
+                3,
                 5,
-                4,
-                2
+                7
             ],
             [
-                7,
-                3
+                2,
+                4
             ],
             [
-                6,
-                1
+                1,
+                6
             ]
         ]
     }
