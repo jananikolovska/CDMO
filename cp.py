@@ -30,14 +30,12 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     start_time = time.time()
 
     error = False
-    sorted = "ordered" in model_path
-    print(f"SORTED: {sorted}")
     
     model = minizinc.Model(model_path)
     solver = minizinc.Solver.lookup(solver)
     inst = minizinc.Instance(solver, model)
 
-    m, n, max_load, weights, distances = utils.read_dat_file(instance_path, sorted=sorted, print_summary = False)
+    m, n, max_load, weights, distances = utils.read_dat_file(instance_path, print_summary = False)
 
     inst["m"] = m
     inst["n"] = n
@@ -266,7 +264,7 @@ if __name__ == "__main__":
     model_folder, instance_folder, solvers = handle_args(sys.argv[1:])
     save_results = True
     
-    if sys.argv[1] == "superuser":
+    if len(sys.argv) == 2 and sys.argv[1] == "superuser":
         main_superuser(model_folder, instance_folder, solvers)
     else:
         main(model_folder, instance_folder, solvers, save_results)
