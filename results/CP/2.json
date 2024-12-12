@@ -1,6 +1,6 @@
 {
     "gecode_plain_bin_packing.mzn": {
-        "time": 0,
+        "time": 1,
         "optimal": true,
         "obj": 226,
         "sol": [
@@ -56,7 +56,7 @@
         ]
     },
     "gecode_sym.mzn": {
-        "time": 1,
+        "time": 0,
         "optimal": true,
         "obj": 226,
         "sol": [
@@ -83,11 +83,77 @@
             ]
         ]
     },
-    "gecode_sym_ordered.mzn": {
-        "time": 0,
+    "gecode_lns90.mzn": {
+        "time": 1,
         "optimal": true,
         "obj": 226,
         "sol": [
+            [
+                5
+            ],
+            [
+                2,
+                7
+            ],
+            [
+                6
+            ],
+            [
+                8,
+                9
+            ],
+            [
+                1,
+                4
+            ],
+            [
+                3
+            ]
+        ]
+    },
+    "gecode_lns94.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                5
+            ],
+            [
+                2
+            ],
+            [
+                1
+            ],
+            [
+                9,
+                6,
+                8
+            ],
+            [
+                4
+            ],
+            [
+                3,
+                7
+            ]
+        ]
+    },
+    "chuffed_plain_bin_packing.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                1,
+                4
+            ],
+            [
+                5
+            ],
+            [
+                6
+            ],
             [
                 8,
                 9
@@ -97,17 +163,231 @@
                 3
             ],
             [
+                7
+            ]
+        ]
+    },
+    "chuffed_plain_no_bin_packing.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                6
+            ],
+            [
+                3,
+                5
+            ],
+            [
+                9
+            ],
+            [
                 1,
                 4
             ],
             [
+                8
+            ],
+            [
+                2,
                 7
+            ]
+        ]
+    },
+    "chuffed_sym.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                6,
+                8
+            ],
+            [
+                5,
+                9
+            ],
+            [
+                4
+            ],
+            [
+                7,
+                3
+            ],
+            [
+                2
+            ],
+            [
+                1
+            ]
+        ]
+    },
+    "gecode_sym_lns90.mzn": {
+        "time": 0,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                9
+            ],
+            [
+                6,
+                8
+            ],
+            [
+                7,
+                5
+            ],
+            [
+                4
+            ],
+            [
+                3,
+                2
+            ],
+            [
+                1
+            ]
+        ]
+    },
+    "gecode_sym_lns94.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                9
+            ],
+            [
+                6,
+                8
+            ],
+            [
+                7,
+                5
+            ],
+            [
+                4
+            ],
+            [
+                3,
+                2
+            ],
+            [
+                1
+            ]
+        ]
+    },
+    "gecode_sym_simple.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                8,
+                9
+            ],
+            [
+                5,
+                7
+            ],
+            [
+                3
+            ],
+            [
+                1,
+                4
+            ],
+            [
+                6
+            ],
+            [
+                2
+            ]
+        ]
+    },
+    "chuffed_sym_simple.mzn": {
+        "time": 0,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                7
+            ],
+            [
+                9
+            ],
+            [
+                5
+            ],
+            [
+                8,
+                6
+            ],
+            [
+                1,
+                4
+            ],
+            [
+                2,
+                3
+            ]
+        ]
+    },
+    "gecode_sym_simple_lns90.mzn": {
+        "time": 0,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                7
+            ],
+            [
+                8,
+                9
             ],
             [
                 5
             ],
             [
                 6
+            ],
+            [
+                3,
+                2
+            ],
+            [
+                1,
+                4
+            ]
+        ]
+    },
+    "gecode_sym_simple_lns94.mzn": {
+        "time": 1,
+        "optimal": true,
+        "obj": 226,
+        "sol": [
+            [
+                7
+            ],
+            [
+                9,
+                5
+            ],
+            [
+                4
+            ],
+            [
+                8,
+                6
+            ],
+            [
+                2,
+                3
+            ],
+            [
+                1
             ]
         ]
     }

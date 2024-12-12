@@ -377,24 +377,6 @@
         "obj": 0,
         "sol": null
     },
-    "gecode_sym_ordered.mzn": {
-        "time": 300,
-        "optimal": false,
-        "obj": 0,
-        "sol": null
-    },
-    "gecode_sym_ordered_lns90.mzn": {
-        "time": 300,
-        "optimal": false,
-        "obj": 0,
-        "sol": null
-    },
-    "gecode_sym_ordered_lns94.mzn": {
-        "time": 300,
-        "optimal": false,
-        "obj": 0,
-        "sol": null
-    },
     "gecode_sym_simple.mzn": {
         "time": 300,
         "optimal": false,
