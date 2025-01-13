@@ -1,5 +1,5 @@
 {
-    "try_without_optimal": {
+    "SMT": {
         "time": 0,
         "optimal": true,
         "obj": 206,
