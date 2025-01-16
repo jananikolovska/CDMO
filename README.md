@@ -1,35 +1,18 @@
 # CDMO
 
-### CP
-to do 
-- ~~run MiniZinc through Docker flow - Jana&Cico~~
-- ~~change Docker flow to not need to build every time - Cico~~
-- update dummy CP script to an initial implementation of our problem
-
-### SAT
-
-to do
-- ~~run script for all instances - Jana~~
-**Done** for up until 14, from 10 onwards they all failed and took too long so for (14-21) I put failed ones
-- ~~run check_solution.py to test locally -Jana~~ 
-**Done** problem with logic of function in CDMO_SAT.py
-- ~~run full flow from docker -Jana~~
-- improve logic in CDMO_SAT.py
-<br>
-
-**CDMO_SAT.ipynb** - visualization code that can be useful for the report 
- 
 **Setup Docker** following the next steps: <br/> 
 1. Download and open Docker
-2. `docker build -t z3_solver .`
-3. `docker run -v "$(pwd):/app" --name cdmo -it z3_solver`
+2. `docker build -t mcp_cdmo .`
+3. `docker run -v "$(pwd):/app" --name cdmo -it mcp_cdmo`
 
-**Run CDMO_SAT.py** on setup-ed docker <br/>
-`python3 CDMO_SAT.py instances results/SAT`
+**Run smt.py** on setup-ed docker <br/>
+`python3 smt.py --instances instances --results results --folder-name SMT_exmple --selected "1,2,3,4,5,6,7,8,9,10"`
+
+**Run cp.py** on setup-ed docker <br/>
+
+**Run mip.py** on setup-ed docker <br/>
 
 **Run check_solutions.py** on setup-ed docker <br/>
 `python3 check_solution.py instances results/`
 
-**Run cp.py** on setup-ed docker <br/>
-`python3 cp.py <instance.dat>`
 

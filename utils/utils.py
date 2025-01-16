@@ -162,14 +162,14 @@ def process_instances_input(inst_path, res_path, selected_instances, folder_name
 
                 save_results(res_path, inst_id, solver_name, result)
 
-def parse_args(args):  #ask cico if he uses it??
+def parsing_arguments(args):  #ask cico if he uses it??
     def parse_instances(value):
         # Check if the value is "all" or a comma-separated list
         if value.lower() == "all":
             return "all"
         return value.split(",")  # Split comma-separated values into a list
 
-
+    #TODO add a flag --save that is default to True
     parser = argparse.ArgumentParser(
         description="Solve problems with specified solver and instances."
     )
@@ -198,6 +198,14 @@ def parse_args(args):  #ask cico if he uses it??
         type=parse_instances,
         default='all',
         help="Specify the instances to process. Options: a, b, c."
+    )
+
+    # Add the --save flag
+    parser.add_argument(
+        '--save',
+        choices=['True', 'False'],
+        default='True',
+        help="Specify whether you want the results saved in a JSON."
     )
 
     # Disallow unrecognized arguments

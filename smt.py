@@ -154,12 +154,11 @@ def solve_mcp_z3(num_couriers,
 
     # Constraints:
 
-    # Each item must be assigned to exactly one courier (DEMAND FULFILLMENT)
+    # DEMAND FULFILLMENT
     for j in range(num_items):
         opt.add(Sum([If(x[i][j], 1, 0) for i in range(num_couriers)]) == 1)
 
-    # #TODO
-    # Maintaining a valid path structure when number of items per courier > 1
+    # (optional) PREVENTING REDUNDANT TRANSITIONS FOR COURIERS WITH MULTIPLE ITEMS
     for i in range(num_couriers):
         for k in range(num_items):
             # how many items the courier i is assigned
@@ -169,12 +168,12 @@ def solve_mcp_z3(num_couriers,
             opt.add(Implies(sum_x > 1,
                             Not(And(y[i][num_items][k], y[i][k][num_items]))))
 
-    # Each courier's load must not exceed their capacity (CAPACITY CONSTRAINT)
+    # CAPACITY CONSTRAINT
     for i in range(num_couriers):
         # Add the load constraint for each courier
         opt.add(Sum([If(x[i][j], item_sizes[j], 0) for j in range(num_items)]) <= load_limits[i])
 
-    # Early Exclusion of items that cannot be delivered by certain couriers based on their load limits
+    # EARLY EXCLUSION OF UNDELIVERABLE ITEMS
     for i in range(num_couriers):
         for j in range(num_items):
             if item_sizes[j] > load_limits[i]:
@@ -182,17 +181,18 @@ def solve_mcp_z3(num_couriers,
                 for k in range(j + 1, num_items):
                     opt.add(Not(x[i][k]))
 
-    # Ensure each courier has at least one item
+    # AT LEAST ONE ITEM PER COURIER
     for i in range(num_couriers):
         opt.add(Sum([x[i][j] for j in range(num_items)]) >= 1)
 
-    #Route Continuity
+    #NO LOOP CONNECTION & DIRECTION OF ROUTE
     for i in range(num_couriers):
         for p in range(num_items):
             opt.add(Not(y[i][p][p]))  # Ensure no self-loop (y[i][p][p] = 0)
             for q in range(p + 1, num_items):  #Ensures no reverse transitions
                 opt.add(Implies(y[i][p][q], Not(y[i][q][p])))
 
+    #VARIABLE LINK: ASSIGNMENTS AND ORDER
     for i in range(num_couriers):
         for p in range(num_items):
             #connecting x variable with order variable
@@ -202,12 +202,11 @@ def solve_mcp_z3(num_couriers,
                 # If there is a transition from p to q, enforce order[p] < order[q]
                 opt.add(Implies(y[i][p][q], order[i][p] < order[i][q]))
 
-    #uniqueness of order variable
+    #UNIQUENESS OF ORDER VARIABLE
     for i in range(num_couriers):
         opt.add(Distinct([order[i][p] for p in range(num_items)]))
 
-    # Preventing redundant "revisits" to a location by ensuring only allowed transitions
-    # connection between x variable and y variable
+    # VARIABLE LINK: ASSIGNMENTS AND ROUTE
     for i in range(num_couriers):
         for j in range(num_items):
             opt.add(Sum([If(y[i][p][j], 1, 0) for p in range(num_items + 1)]) == If(x[i][j], 1, 0))
@@ -216,7 +215,7 @@ def solve_mcp_z3(num_couriers,
         opt.add(Sum([If(y[i][p][num_items], 1, 0) for p in range(num_items + 1)]) == 1)
         opt.add(Sum([If(y[i][num_items][q], 1, 0) for q in range(num_items + 1)]) == 1)
 
-    # Calculate total distance for each courier
+    #DISTANCE PER COURIER CALCULATION
     for i in range(num_couriers):
         # Create a list to hold distance terms for the current courier
         distance_terms = []
