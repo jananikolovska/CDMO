@@ -54,7 +54,6 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     elapsed_time = stop_time - start_time
 
     solving_time, optimal, obj, sol = None, None, None, None
-    # print(f"STATUS = {res.status}")
 
     if error or res.status == minizinc.Status.UNKNOWN:
         if not error:
@@ -73,9 +72,7 @@ def solve_instance(model_path, instance_path, solver, time_limit):
 
     else:
         obj = res["objective"] 
-        # sol = list()
-        # for package in res["packages"]:
-        #     sol.append([i+1 for i in range(len(package)) if package[i] == 1])
+
         sol = build_solution(res)
         
         if res.status == minizinc.Status.SATISFIED:
@@ -99,88 +96,88 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     return result, round(elapsed_time,2)
 
 
-def main(model_folder, instance_folder, solvers, save_results = True, time_limit=300):
-    res_path = "results/CP"
+def save_results(res_path, inst_id, solver, model_name, result):
+
+    os.makedirs(res_path, exist_ok=True)
+    output_file_path = os.path.join(res_path, f"{inst_id}.json")
+    configuration = solver + '_' + model_name
+
+    if os.path.exists(output_file_path):
+        with open(output_file_path, "r") as json_file:
+            existing_data = json.load(json_file)
+    else:
+        existing_data = {}
+
+    existing_data[configuration] = result
+
+    with open(output_file_path, "w") as json_file:
+        json.dump(existing_data, json_file, indent=4)
+
+    print(f"data saved ---> {output_file_path}")
+
+
+def main(model_folder, instance_folder, result_folder, solvers, mode, save, time_limit=300):
+    res_path = f"{result_folder}/CP"
     time_limit = datetime.timedelta(seconds=int(time_limit))
 
-    if save_results:
+    if save:
         print(f"Results saving ENABLED on {res_path}")
     else:
         print("Results saving DISABLED.")
 
-    for model_name in os.listdir(model_folder):
-        model_path = os.path.join(model_folder, model_name)
+    if mode == 'superuser':
+        solver = solvers ## solvers should be a string not a list
 
-        if os.path.isfile(model_path):
-            for solver in solvers:
-                for instance_name in os.listdir(instance_folder):
-                    instance_path = os.path.join(instance_folder, instance_name)
-                    inst_id = int(instance_name[4:-4])
-                    
-                    if solver == "gecode" or ("lns" not in model_name): 
-                        if os.path.isfile(instance_path):
-                            # try:
-                            #     result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-                            # except Exception as e:
-                            #     print(f"Error: {e}")
-                            #     print("Saving default results.")
-                            result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+        if solver == "gecode" or ("lns" not in model_folder): 
+
+            result, elapsed_time = solve_instance(model_folder, instance_folder, solver, time_limit)
+            print(f"Elapsed time: {elapsed_time} sec.")
+
+            if save:
+                model_name = model_folder.split("/")[-1]
+                inst_id = int(instance_folder.split("/")[-1][4:-4])
+                save_results(res_path, inst_id, solver, model_name, result)
+
+        else:
+            print("Chuffed solver is not compatible with lns models. exiting...")
+            exit(1)
+
+    elif mode == 'normal':
+        for model_name in os.listdir(model_folder):
+            model_path = os.path.join(model_folder, model_name)
+
+            if os.path.isfile(model_path):
+                for solver in solvers:
+                    for instance_name in os.listdir(instance_folder):
+                        instance_path = os.path.join(instance_folder, instance_name)
+                        inst_id = int(instance_name[4:-4])
                         
-                            print(f"Elapsed time: {elapsed_time} sec.")
+                        if solver == "gecode" or ("lns" not in model_name): 
+                            if os.path.isfile(instance_path):
+                        
+                                result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
+                            
+                                print(f"Elapsed time: {elapsed_time} sec.")
 
-                            if save_results:
+                                if save:
 
-                                output_file_path = os.path.join(res_path, f"{inst_id}.json")
-                                configuration = solver + '_' + model_name
-
-                                if os.path.exists(output_file_path):
-                                    with open(output_file_path, "r") as json_file:
-                                        existing_data = json.load(json_file)
-                                else:
-                                    existing_data = {}
-
-                                existing_data[configuration] = result
-
-                                with open(output_file_path, "w") as json_file:
-                                    json.dump(existing_data, json_file, indent=4)
-
-                                print(f"data saved ---> {output_file_path}")
-    print("\nDone!")
-
-
-def main_superuser(model_path, instance_path, solver, time_limit=300):
-    time_limit = datetime.timedelta(seconds=int(time_limit))
-
-    print("Results saving DISABLED in superuser mode.")
-  
-    if solver == "gecode" or ("lns" not in model_path): 
-        # try:
-        #     result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-        # except Exception as e:
-        #     print(f"Error: {e}, let's try again.")
-        #     result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-
-        result, elapsed_time = solve_instance(model_path, instance_path, solver, time_limit)
-        print(f"Elapsed time: {elapsed_time} sec.")
-
-    else:
-        print("Chuffed solver is not compatible with lns models. exiting...")
-        exit(1)
-
+                                    save_results(res_path, inst_id, solver, model_name, result)
     print("\nDone!")
 
 
 def handle_args(args):
-    if args == []:
-        model_option = "all"
-        instance_option = "all"
-        solver_option = "all"
+    model_folder = f"models_CP/{args.models}"
+    instance_folder = f"instances_CP/{args.instances}"
+    results_folder = args.results
+    solvers = ['gecode','chuffed'] if args.solvers == 'all' else [args.solvers]
+    save = True if args.save == 'true' else False
+    mode = args.mode
 
-    elif len(args) == 1 and args[0] == "superuser":
-        # read from keyboard the model
-        model_folder = "models/all/" + input("Type the name of the model you want to use: ")
+    if args.mode == 'superuser':
+    # read from keyboard the model
+        model_folder = "models_CP/all/" + input("Type the name of the model you want to use: ")
         while(not os.path.isfile(model_folder)):
-            model_folder = "models/all/" + input(f"{model_folder} doesn't exist! Try again: ")
+            model_folder = "models_CP/all/" + input(f"{model_folder} doesn't exist! Try again: ")
         print("")
 
         instance_folder = "instances_CP/all/" + input("Type the name of the instance to solve: ")
@@ -192,93 +189,58 @@ def handle_args(args):
         while(solvers not in ["gecode","chuffed"]):
              solvers = input(f"{solvers} doesn't exist! Try again: ")
         print("")
-
-        return model_folder, instance_folder, solvers
-
-    elif len(args) != 3:
-        raise ValueError("Invalid arguments. \n\
-            Usage: python3 cp.py <models> <instances> <solvers> <save_results>.\n\
-                <models>: all, sym, lns, plain, custom.\n\
-                    <instances>: all, soft, hard.\n\
-                        <solvers>: all, gecode, chuffed.")
-    else:                    
-        model_option = args[0]
-        instance_option = args[1]
-        solver_option = args[2]
-
-    if model_option == "all":
-        model_folder = "models/all"
     
-    elif model_option == "sym":
-        model_folder = "models/sym"
 
-    elif model_option == "lns":
-        model_folder = "models/lns"
 
-    elif model_option == "plain":
-        model_folder = "models/plain"   
-
-    elif model_option == "custom":
-        model_folder = "models/custom"  
-
-    else:
-        raise ValueError("Invalid model option. \n\
-            Usage: python3 cp.py <models> <instances> <solvers>.\n\
-                Please choose one of the following <models>: all, sym, lns, plain, custom.")
-
-    if instance_option == "all":
-        instance_folder = "instances_CP/all"
-
-    elif instance_option == "soft":
-        instance_folder = "instances_CP/soft"
-    
-    elif instance_option == "hard":
-        instance_folder = "instances_CP/hard"
-
-    elif instance_option == "custom":
-        instance_folder = "instances_CP/custom"
-
-    else:
-        raise ValueError("Invalid instance option. \n\
-            Usage: python3 cp.py <models> <instances> <solvers>.\n\
-                Please choose one of the following <instances>: all, soft, hard, custom.")
-    
-    if solver_option == "all":
-        solvers = ["gecode","chuffed"]
-    elif solver_option == "gecode":
-        solvers = ["gecode"]
-    elif solver_option == "chuffed":
-        solvers = ["chuffed"]
-    else:
-        raise ValueError("Invalid solver option. \n\
-            Usage: python3 cp.py <models> <instances> <solvers>.\n\
-                Please choose one of the following <solvers>: all, gecode, chuffed.")
-
-    print(f"\nRunning {model_option} models on {instance_option} instances with {solver_option} solver(s)!")
-
-    return model_folder, instance_folder, solvers
+    return model_folder, instance_folder, results_folder, solvers, mode, save
 
 
 if __name__ == "__main__":
 
-    model_folder, instance_folder, solvers = handle_args(sys.argv[1:])
-    save_results = True
+    model_folder, instance_folder, results_folder, solvers, mode, save = handle_args(utils.parsing_arguments(program='cp'))
     
-    if len(sys.argv) == 2 and sys.argv[1] == "superuser":
-        main_superuser(model_folder, instance_folder, solvers)
-    else:
-        main(model_folder, instance_folder, solvers, save_results)
+    print(f"Modality: {mode.upper()}")
+    print(f"Model folder: {model_folder}")
+    print(f"Instance folder: {instance_folder}")
+    print(f"Results folder: {results_folder}")
+    print(f"Solvers: {solvers}")
+    print(f"Save results: {save}")
 
-    # the idea is to execute the program in this way:
-    # python3 cp.py <models> <instances> <solvers> 
-    # python3 cp.py all_models all_instances all_solvers
-    # python3 cp.py sym_models soft_instances gecode
-    # python3 cp.py lns_models hard_instances chuffed
-    # python3 cp.py plain_models hard_instances gecode
+    main(model_folder, instance_folder, results_folder, solvers, mode, save)
 
-    # there exist a superuser mode to run specific models with specific instances.
-    # python3 cp.py superuser
-    # everything will be guided
+    # HELP
+
+    # cp.py accepts the following optional commands:
+
+    # --models: 
+    # choices=['all', 'sym', 'lns', 'plain'],
+    # default="all",
+    # help="Specify the cp models to use."
+
+    # --instances: 
+    # choices=['all', 'soft', 'hard'],
+    # default="all",
+    # help="Specify the instances to process."
+
+    # --solvers
+    # choices=['all', 'gecode', 'chuffed'],
+    # default="all",
+    # help="Specify the solver to use."
+
+    # --save
+    # choices=['true', 'false'],
+    # default='true',
+    # help="Specify whether you want the results saved in a JSON."
+
+    # --results 
+    # default='results',
+    # help="Specify where do you want to save the results."
+
+    # --mode
+    # choices=['normal', 'superuser'],
+    # default='normal',
+    # help="Specify which mode to run. If 'superuser' is selected, no need to specify models, instances and solvers."
+
 
 
 

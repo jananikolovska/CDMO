@@ -162,57 +162,59 @@ def process_instances_input(inst_path, res_path, selected_instances, folder_name
 
                 save_results(res_path, inst_id, solver_name, result)
 
-def parsing_arguments(args):  #ask cico if he uses it??
-    def parse_instances(value):
-        # Check if the value is "all" or a comma-separated list
-        if value.lower() == "all":
-            return "all"
-        return value.split(",")  # Split comma-separated values into a list
+def parsing_arguments(program): 
+    
+    if program == 'cp':
+        parser = argparse.ArgumentParser(
+            description="Solve problems with specified solver and instances."
+        )
 
-    #TODO add a flag --save that is default to True
-    parser = argparse.ArgumentParser(
-        description="Solve problems with specified solver and instances."
-    )
+        parser.add_argument(
+            '--mode',
+            choices=['normal', 'superuser'],
+            default='normal',
+            help="Specify which mode to run."
+        )
 
-    # Add the --models flag
-    parser.add_argument(
-        '--models',
-        choices=['all', 'sym', 'lns', 'plain', 'custom'],
-        required=True,
-        default='all',
-        help="Specify the solver to use. Options: all, gecode, chuffed."
-    )
+        # Add the --models flag
+        parser.add_argument(
+            '--models',
+            choices=['all', 'sym', 'lns', 'plain', 'custom'],
+            default='all',
+            help="Specify the model to use. Options: all, sym, lns, plain, custom."
+        )
 
-    # Add the --solver flag
-    parser.add_argument(
-        '--solver',
-        choices=['all', 'gecode', 'chuffed'],
-        required=True,
-        default='all',
-        help="Specify the solver to use. Options: all, gecode, chuffed."
-    )
+        # Add the --instances flag
+        parser.add_argument(
+            '--instances',
+            choices=['all', 'soft', 'hard'],
+            default="all",
+            help="Specify the instances to process. Options: all, soft, hard."
+        )
 
-    # Add the --instances flag
-    parser.add_argument(
-        '--instances',
-        type=parse_instances,
-        default='all',
-        help="Specify the instances to process. Options: a, b, c."
-    )
+        # Add the --solvers flag
+        parser.add_argument(
+            '--solvers',
+            choices=['all', 'gecode', 'chuffed'],
+            default='all',
+            help="Specify the solver to use. Options: all, gecode, chuffed."
+        )
 
-    # Add the --save flag
-    parser.add_argument(
-        '--save',
-        choices=['True', 'False'],
-        default='True',
-        help="Specify whether you want the results saved in a JSON."
-    )
+        # Add the --save flag
+        parser.add_argument(
+            '--save',
+            choices=['true', 'false'],
+            default='true',
+            help="Specify whether you want the results saved in a JSON."
+        )
 
-    # Disallow unrecognized arguments
-    args = parser.parse_args()
+        parser.add_argument(
+            '--results',
+            default='results',
+            help="Specify where do you want to save the results."
+        )
 
-    # Print arguments (for demonstration purposes)
-    print(f"Solver: {args.solver}")
-    print(f"Models: {args.models}")
-    print(f"Instances: {args.instances}")
-    return args.models, args.solver, args.instances
+        # Disallow unrecognized arguments
+        args_cp = parser.parse_args()
+
+        return args_cp
