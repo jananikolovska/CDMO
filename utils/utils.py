@@ -30,7 +30,6 @@ def log(message, verbose=True):
 
 def save_results(res_path, inst_id, solver_name, result_data, verbose=True):
     file_path = os.path.join(res_path, f"{inst_id}.json")
-    log(file_path, verbose)
     with open(file_path, "w") as f:
         json.dump({solver_name: result_data}, f, indent=4)
     log(f"JSON data saved to {file_path}",verbose)
@@ -142,7 +141,7 @@ def process_instances_input(inst_path, res_path, selected_instances, solver_func
         inst_id = int(filename[4:-4])
         if inst_id in selected_instances:
             n_couriers, n_items, capacity, sizes, dist_matrix = read_dat_file(inst_file)
-            log(f'\tLoaded input instance {filename}', verbose)
+            log(f'\tLoaded input instance {filename}')
             process = multiprocessing.Process(
                 target=solver_function,
                 args=(n_couriers, n_items, capacity, sizes, dist_matrix, res_path, inst_id, solver_name, time_limit, verbose)
@@ -180,6 +179,8 @@ def parsing_arguments(program):
                                  "Default: \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21\").")
         parser.add_argument("--time-limit", "-tl", type=int, default=300, required=False,
                             help="Time limit for the program in seconds. Must be an integer. Default: 300.")
+        parser.add_argument("--verbose", type=lambda x: (str(x).lower() == "true"), default=True, help="Enable verbose output (select: True or False)")
+
     
     if program == 'cp':
         parser.add_argument(

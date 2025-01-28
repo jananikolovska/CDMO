@@ -37,7 +37,6 @@ def extract_ordered_route(model, courier_id, num_items,x, y, item_encodings):
         for q in assigned_items + [num_items]:
             if current_location!=q and is_true(model.evaluate(y[courier_id][current_location][q])):
                 ordered_route.append(q)
-                print(ordered_route)
                 if len(ordered_route) == len(assigned_items):
                     return [item_encodings.get(k+1) for k in ordered_route]
                 current_location = q
@@ -159,6 +158,7 @@ def solve_mcp_z3(num_couriers,
     start_time = time.time()
     current_datetime()
 
+
     # Initialize the Z3 optimizer
     opt = Optimize()
     log("Initialization complete. Setting up variables and constraints...", verbose)
@@ -174,7 +174,7 @@ def solve_mcp_z3(num_couriers,
 
     # Initialize lower bound
     upper_bound, lower_bound = set_bounds(int_distance_matrix, num_items, opt, max_distance)
-    log(f"Bounds set. Upper: {upper_bound}, Lower: {lower_bound}", True)
+    log(f"Bounds set. Upper: {upper_bound}, Lower: {lower_bound}", verbose)
 
     log("Adding constraints...", verbose)
     # Breaking courier symmetry - Enforce order by distance traveled
@@ -331,6 +331,7 @@ if __name__ == "__main__":
                             selected_instances,
                             solve_mcp_z3,
                             "SMT",
-                            args.time_limit)
+                            args.time_limit,
+                            verbose=args.verbose)
 
     log("SMT solver done")
