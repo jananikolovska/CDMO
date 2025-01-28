@@ -87,13 +87,45 @@ def compute_lower_bound(depot, num_items, distance_matrix):
     return max_distance
 
 def create_variables(num_couriers, num_items):
+    """
+        Creates decision variables for an optimization problem involving couriers and items.
+
+        Args:
+            num_couriers (int): The number of couriers in the problem.
+            num_items (int): The number of items to be delivered.
+
+        Returns:
+            tuple: A tuple containing the following variables:
+                - x (list of list of Bool): Binary decision variables `x[i][j]` indicating whether courier `i` is assigned to item `j`.
+                - y (list of list of list of Bool): Binary decision variables `y[i][p][q]` representing whether courier `i` travels from item `p` to item `q` (including a depot as `q=num_couriers` or `p=num_couriers`).
+                - order (list of list of Int): Integer decision variables `order[i][j]` if > 0 representing the order in which courier `i` visits item `j`.
+                - d (list of Int): Integer decision variables `d[i]` representing the total distance traveled by courier `i`.
+                - max_distance(Int): Integer decision variable representing the maximum distance traveled
+    """
+
     x = [[Bool(f'x_{i}_{j}') for j in range(num_items)] for i in range(num_couriers)]
     y = [[[Bool(f'y_{i}_{p}_{q}') for q in range(num_items + 1)] for p in range(num_items + 1)] for i in range(num_couriers)]
     order = [[Int(f"order_{i}_{j}") for j in range(num_items)] for i in range(num_couriers)]
     d = [Int(f'd_{i}') for i in range(num_couriers)]
-    return x, y, order, d
+    max_distance = Int('max_distance')
+    return x, y, order, d, max_distance
 
 def set_bounds(int_distance_matrix, num_items, opt, max_distance):
+    """
+    Sets and returns bounds for the maximum distance constraint in an optimization problem.
+
+    Args:
+        int_distance_matrix (list of list of int): A 2D matrix where `int_distance_matrix[i][j]`
+            represents the distance between item `i` and item `j`.
+        num_items (int): The total number of items involved in the problem.
+        opt (z3.Optimizer): The Z3 optimizer object used to solve the optimization problem.
+        max_distance (z3.Int): A Z3 integer variable representing the maximum distance constraint.
+
+    Returns:
+        tuple:
+            - upper_bound (int): The computed upper bound for the maximum distance.
+            - lower_bound (int): The computed lower bound for the maximum distance.
+    """
     upper_bound = compute_larger_bound(int_distance_matrix)
     lower_bound = compute_lower_bound(num_items, num_items, int_distance_matrix)
     opt.add(max_distance <= upper_bound)
@@ -108,6 +140,7 @@ def solve_mcp_z3(num_couriers,
                  res_path,
                  inst_id,
                  solver_name,
+                 timeout,
                  verbose=True):
     """
         Solves the Multi-Courier Problem (MCP) using the Z3 solver.
@@ -124,7 +157,6 @@ def solve_mcp_z3(num_couriers,
             dict: A dictionary containing the execution time, optimal solution status, objective value, and the solution routes.
     """
     start_time = time.time()
-    timeout = 300
     current_datetime()
 
     # Initialize the Z3 optimizer
@@ -138,10 +170,7 @@ def solve_mcp_z3(num_couriers,
                        for p in range(num_items + 1)]
 
     # Decision Variables:
-    x, y, order, d = create_variables(num_couriers, num_items)
-
-    # max_distance = the maximum distance traveled by any courier
-    max_distance = Int('max_distance')
+    x, y, order, d, max_distance = create_variables(num_couriers, num_items)
 
     # Initialize lower bound
     upper_bound, lower_bound = set_bounds(int_distance_matrix, num_items, opt, max_distance)
@@ -183,26 +212,25 @@ def solve_mcp_z3(num_couriers,
 
     # AT LEAST ONE ITEM PER COURIER
     for i in range(num_couriers):
-        opt.add(Sum([x[i][j] for j in range(num_items)]) >= 1)
+        opt.add(Sum([If(x[i][j], 1, 0) for j in range(num_items)]) >= 1)
 
     #NO LOOP CONNECTION & DIRECTION OF ROUTE
     for i in range(num_couriers):
         for p in range(num_items):
-            opt.add(Not(y[i][p][p]))  # Ensure no self-loop (y[i][p][p] = 0)
-            for q in range(p + 1, num_items):  #Ensures no reverse transitions
+            opt.add(Not(y[i][p][p]))
+            for q in range(p + 1, num_items):
                 opt.add(Implies(y[i][p][q], Not(y[i][q][p])))
 
-    #VARIABLE LINK: ASSIGNMENTS AND ORDER
+    #VARIABLE LINK: ASSIGNMENTS/ROUTE AND ORDER
     for i in range(num_couriers):
         for p in range(num_items):
-            #connecting x variable with order variable
             opt.add(Implies(Not(x[i][p]), order[i][p] < 0))
             opt.add(Implies(x[i][p], order[i][p] > 0))
             for q in range(num_items):
                 # If there is a transition from p to q, enforce order[p] < order[q]
                 opt.add(Implies(y[i][p][q], order[i][p] < order[i][q]))
 
-    #UNIQUENESS OF ORDER VARIABLE
+    # UNIQUENESS OF ORDER VARIABLE
     for i in range(num_couriers):
         opt.add(Distinct([order[i][p] for p in range(num_items)]))
 
@@ -217,17 +245,11 @@ def solve_mcp_z3(num_couriers,
 
     #DISTANCE PER COURIER CALCULATION
     for i in range(num_couriers):
-        # Create a list to hold distance terms for the current courier
         distance_terms = []
-
-        # Loop over all points (including depot) to sum distances
         for p in range(num_items + 1):  # Including depot
             for q in range(num_items + 1):  # Including depot
-                # Use an integer value for distance matrix
-                distance = distance_matrix[p][q]  # Make sure this is an integer
+                distance = distance_matrix[p][q]  # Use an integer value for distance
                 distance_terms.append(If(y[i][p][q], distance, 0))
-
-        # Add the constraint for the total distance for courier i
         opt.add(d[i] == Sum(distance_terms))
 
     # The maximum distance is at least the distance traveled by any courier
@@ -238,12 +260,12 @@ def solve_mcp_z3(num_couriers,
     opt.minimize(max_distance)
     log("Constraints added. Starting solver...",verbose)
 
-    # Set a timeout (in milliseconds)
+    # Give update on time available for solving
     time_left = max(1,timeout - int(time.time() - start_time))
     log(f"Time left for solution: {time_left}",verbose)
     current_datetime()
 
-    # Solve the problem with a timer
+    # Solve the problem
     result = opt.check()
     runtime = time.time() - start_time
 
@@ -279,40 +301,36 @@ def solve_mcp_z3(num_couriers,
         "obj": obj if obj is not None else 0,  # Set to 0 if no objective found
         "sol":  [routes[i] for i in sorted_indices_load]
     }
-    save_results(res_path, inst_id, solver_name, result)
+    save_results(res_path, inst_id, solver_name, result,verbose)
     return result
 
 
 if __name__ == "__main__":
     # Define and parse the arguments
-    parser = argparse.ArgumentParser(description="A simple SMT solver script with customizable arguments.")
-    parser.add_argument("--instances", "-i", required=True, help="Path to the folder containing instance files.")
-    parser.add_argument("--results", "-r", required=True, help="Path to the base folder where results will be stored.")
-    parser.add_argument("--folder-name", "-f", default="SMT",
-                        help="Name of the subfolder to store results (default: SMT).")
-    parser.add_argument("--selected", "-s", default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
-                        help="An integer or a list of integers specifying selected instances "
-                             "(default: \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21\").")
-
-    args = parser.parse_args()
+    args = parsing_arguments("smt")
 
     # Parse and handle the selected_instances argument
-    if args.selected.isdigit():
-        selected_instances = [int(args.selected)]
+    if args.instances.isdigit():
+        selected_instances = [int(args.instances)]
     else:
-        selected_instances = list(map(int, args.selected.strip("[]").split(",")))
+        selected_instances = list(map(int, args.instances.strip("[]").split(",")))
 
     log("SMT solver started")
 
     # Paths
-    inst_path = os.path.abspath(args.instances)
-    res_path = os.path.join(os.path.abspath(args.results), args.folder_name)
+    inst_path = os.path.abspath(args.instances_folder)
+    res_path = os.path.join(os.path.abspath(args.results_folder), args.results_subfolder_name)
 
     # Create the results folder if it doesn't exist
     os.makedirs(res_path, exist_ok=True)
 
     log(f"Selected instances: {selected_instances}")
     # Process the instances
-    process_instances_input(inst_path, res_path, selected_instances,args.folder_name, solve_mcp_z3, "SMT")
+    process_instances_input(inst_path,
+                            res_path,
+                            selected_instances,
+                            solve_mcp_z3,
+                            "SMT",
+                            args.time_limit)
 
     log("SMT solver done")

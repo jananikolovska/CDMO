@@ -28,12 +28,12 @@ def log(message, verbose=True):
     if verbose:
         print(f"[LOG] {message}")
 
-def save_results(res_path, inst_id, solver_name, result_data):
+def save_results(res_path, inst_id, solver_name, result_data, verbose=True):
     file_path = os.path.join(res_path, f"{inst_id}.json")
-    log(file_path)
+    log(file_path, verbose)
     with open(file_path, "w") as f:
         json.dump({solver_name: result_data}, f, indent=4)
-    log(f"JSON data saved to {file_path}")
+    log(f"JSON data saved to {file_path}",verbose)
 
 def check_elapsed_time(start_time,timeout,print_time=False):
     """ Checks if the elapsed time has exceeded a specified timeout.
@@ -125,7 +125,7 @@ def encode_input(item_sizes, load_limits , distance_matrix, sort_items, sort_loa
 
         return item_sizes, load_limits , distance_matrix, (item_encodings,sorted_indices_load)
 
-def process_instances_input(inst_path, res_path, selected_instances, folder_name, solver_function, solver_name):
+def process_instances_input(inst_path, res_path, selected_instances, solver_function, solver_name, time_limit, verbose=True):
     """ Processes instances from a specified input folder and saves the results to the output folder.
 
         Args:
@@ -142,33 +142,46 @@ def process_instances_input(inst_path, res_path, selected_instances, folder_name
         inst_id = int(filename[4:-4])
         if inst_id in selected_instances:
             n_couriers, n_items, capacity, sizes, dist_matrix = read_dat_file(inst_file)
-            log(f'\tLoaded input instance {filename}')
+            log(f'\tLoaded input instance {filename}', verbose)
             process = multiprocessing.Process(
                 target=solver_function,
-                args=(n_couriers, n_items, capacity, sizes, dist_matrix, res_path, inst_id, solver_name)
+                args=(n_couriers, n_items, capacity, sizes, dist_matrix, res_path, inst_id, solver_name, time_limit, verbose)
             )
             process.start()
-            process.join(timeout=300)
+            process.join(timeout=time_limit)
             if process.is_alive():
-                log("Timeout reached, terminating!")
+                log("Timeout reached, terminating!",verbose)
                 process.terminate()  # Forcefully terminate the process
                 process.join()  # Ensure cleanup
                 result = {
-                    "time": 300,
+                    "time": time_limit,
                     "optimal": False,
                     "obj": 0,  # Set to 0 if no objective found
                     "sol": []
                 }
 
-                save_results(res_path, inst_id, solver_name, result)
+                save_results(res_path, inst_id, solver_name, result, verbose)
 
-def parsing_arguments(program): 
+def parsing_arguments(program):
+
+    parser = argparse.ArgumentParser(
+        description=f"Solve problems with specified solver and instances using {program.upper()}."
+    )
+
+    if program == 'smt':
+        parser.add_argument("--instances-folder", "-if", required=False, default="instances",
+                            help="Path to the folder containing instance files. Default = \"instances\"")
+        parser.add_argument("--results-folder", "-rf", required=False, default = "results",
+                            help="Path to the base folder where results will be stored. Default = \"results\"")
+        parser.add_argument("--results-subfolder-name", "-sf", default="SMT",
+                            help="Name of the subfolder to store results. Default: \"SMT\".")
+        parser.add_argument("--instances", "-i", default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
+                            help="An integer or a list of integers specifying selected instances. "
+                                 "Default: \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21\").")
+        parser.add_argument("--time-limit", "-tl", type=int, default=300, required=False,
+                            help="Time limit for the program in seconds. Must be an integer. Default: 300.")
     
     if program == 'cp':
-        parser = argparse.ArgumentParser(
-            description="Solve problems with specified solver and instances."
-        )
-
         parser.add_argument(
             '--mode',
             choices=['normal', 'superuser'],
@@ -215,6 +228,6 @@ def parsing_arguments(program):
         )
 
         # Disallow unrecognized arguments
-        args_cp = parser.parse_args()
+    args = parser.parse_args()
 
-        return args_cp
+    return args

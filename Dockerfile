@@ -23,13 +23,6 @@ ENV PATH="/opt/minizinc/bin:$PATH"
 # Install Python packages
 RUN pip3 install --no-cache-dir z3-solver numpy matplotlib pandas minizinc
 
-# Copy your Python script into the Docker image
-COPY CDMO_SAT.py /app/CDMO_SAT.py
-COPY hello_world.mzn /app/hello_world.mzn
-COPY CDMO_CP.py /app/CDMO_CP.py
-COPY check_solution.py /app/check_solution.py
-COPY instances/ /app/instances/
-
 # Set the working directory
 WORKDIR /app
 
