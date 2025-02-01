@@ -28,13 +28,7 @@ def log(message, verbose=True):
     if verbose:
         print(f"[LOG] {message}")
 
-def save_results(res_path, inst_id, solver_name, result_data, verbose=True):
-    file_path = os.path.join(res_path, f"{inst_id}.json")
-    with open(file_path, "w") as f:
-        json.dump({solver_name: result_data}, f, indent=4)
-    log(f"JSON data saved to {file_path}",verbose)
-
-def common_save_results(res_path, inst_id, solver_name, result_data, verbose=True, model_name=None):
+def save_results(res_path, inst_id, solver_name, result_data, verbose=True, model_name=None):
     
     os.makedirs(res_path, exist_ok=True)
     file_path = os.path.join(res_path, f"{inst_id}.json")

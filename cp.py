@@ -145,7 +145,7 @@ def main(model_folder, selected_instances, result_folder, solvers, save, time_li
 
                                 if save:
 
-                                    utils.common_save_results(res_path, inst_id, solver, result, model_name)
+                                    utils.save_results(res_path, inst_id, solver, result, model_name)
     print("\nDone!")
 
 

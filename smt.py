@@ -301,7 +301,7 @@ def solve_mcp_z3(num_couriers,
         "obj": obj if obj is not None else 0,  # Set to 0 if no objective found
         "sol":  [routes[i] for i in sorted_indices_load]
     }
-    common_save_results(res_path, inst_id, solver_name, result,verbose)
+    save_results(res_path, inst_id, solver_name, result,verbose)
     return result
 
 
