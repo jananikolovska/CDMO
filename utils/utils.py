@@ -34,6 +34,26 @@ def save_results(res_path, inst_id, solver_name, result_data, verbose=True):
         json.dump({solver_name: result_data}, f, indent=4)
     log(f"JSON data saved to {file_path}",verbose)
 
+def common_save_results(res_path, inst_id, solver_name, result_data, verbose=True, model_name=None):
+    
+    os.makedirs(res_path, exist_ok=True)
+    file_path = os.path.join(res_path, f"{inst_id}.json")
+    if model_name is not None:
+        configuration = solver_name + '_' + model_name 
+    else:
+        configuration = solver_name
+    if os.path.exists(file_path):
+        with open(file_path, "r") as json_file:
+            existing_data = json.load(json_file)
+    else:
+        existing_data = {}
+
+    existing_data[configuration] = result_data
+
+    with open(file_path, "w") as f:
+        json.dump(existing_data, f, indent=4)
+    log(f"JSON data saved to {file_path}",verbose)
+
 def check_elapsed_time(start_time,timeout,print_time=False):
     """ Checks if the elapsed time has exceeded a specified timeout.
 
@@ -183,50 +203,39 @@ def parsing_arguments(program):
 
     
     if program == 'cp':
-        parser.add_argument(
-            '--mode',
-            choices=['normal', 'superuser'],
-            default='normal',
-            help="Specify which mode to run."
-        )
-
+       
         # Add the --models flag
         parser.add_argument(
             '--models',
             choices=['all', 'sym', 'lns', 'plain', 'custom'],
             default='all',
-            help="Specify the model to use. Options: all, sym, lns, plain, custom."
+            help="Specify the model to use. Options: all, sym, lns, plain, custom. Default: all."
         )
 
-        # Add the --instances flag
-        parser.add_argument(
-            '--instances',
-            choices=['all', 'soft', 'hard'],
-            default="all",
-            help="Specify the instances to process. Options: all, soft, hard."
-        )
+        parser.add_argument("--instances", "-i", default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
+                            help="An integer or a list of integers specifying selected instances. "
+                                 "Default: \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21\").")
 
         # Add the --solvers flag
         parser.add_argument(
             '--solvers',
             choices=['all', 'gecode', 'chuffed'],
             default='all',
-            help="Specify the solver to use. Options: all, gecode, chuffed."
+            help="Specify the solver to use. Options: all, gecode, chuffed. Default: all"
         )
 
         # Add the --save flag
-        parser.add_argument(
-            '--save',
-            choices=['true', 'false'],
-            default='true',
-            help="Specify whether you want the results saved in a JSON."
-        )
+        parser.add_argument('--save', type=lambda x: (str(x).lower() == "true"), default=False, help="Enable saving in JSON format. (select: True or False)")
+        
 
         parser.add_argument(
             '--results',
             default='results',
-            help="Specify where do you want to save the results."
+            help="Specify where do you want to save the results. Default: results"
         )
+
+        parser.add_argument("--time-limit", "-tl", type=int, default=300, required=False,
+                            help="Time limit for the program in seconds. Must be an integer. Default: 300.")
 
         # Disallow unrecognized arguments
     args = parser.parse_args()

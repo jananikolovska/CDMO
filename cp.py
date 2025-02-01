@@ -116,8 +116,9 @@ def save_results(res_path, inst_id, solver, model_name, result):
     print(f"data saved ---> {output_file_path}")
 
 
-def main(model_folder, instance_folder, result_folder, solvers, mode, save, time_limit=300):
+def main(model_folder, selected_instances, result_folder, solvers, save, time_limit=300):
     res_path = f"{result_folder}/CP"
+    instance_folder = "instances"
     time_limit = datetime.timedelta(seconds=int(time_limit))
 
     if save:
@@ -125,33 +126,16 @@ def main(model_folder, instance_folder, result_folder, solvers, mode, save, time
     else:
         print("Results saving DISABLED.")
 
-    if mode == 'superuser':
-        solver = solvers ## solvers should be a string not a list
+    for model_name in os.listdir(model_folder):
+        model_path = os.path.join(model_folder, model_name)
 
-        if solver == "gecode" or ("lns" not in model_folder): 
-
-            result, elapsed_time = solve_instance(model_folder, instance_folder, solver, time_limit)
-            print(f"Elapsed time: {elapsed_time} sec.")
-
-            if save:
-                model_name = model_folder.split("/")[-1]
-                inst_id = int(instance_folder.split("/")[-1][4:-4])
-                save_results(res_path, inst_id, solver, model_name, result)
-
-        else:
-            print("Chuffed solver is not compatible with lns models. exiting...")
-            exit(1)
-
-    elif mode == 'normal':
-        for model_name in os.listdir(model_folder):
-            model_path = os.path.join(model_folder, model_name)
-
-            if os.path.isfile(model_path):
-                for solver in solvers:
-                    for instance_name in os.listdir(instance_folder):
-                        instance_path = os.path.join(instance_folder, instance_name)
-                        inst_id = int(instance_name[4:-4])
-                        
+        if os.path.isfile(model_path):
+            for solver in solvers:
+                for instance_name in os.listdir(instance_folder):
+                    instance_path = os.path.join(instance_folder, instance_name)
+                    inst_id = int(instance_name[4:-4])
+                    
+                    if inst_id in selected_instances:
                         if solver == "gecode" or ("lns" not in model_name): 
                             if os.path.isfile(instance_path):
                         
@@ -161,52 +145,48 @@ def main(model_folder, instance_folder, result_folder, solvers, mode, save, time
 
                                 if save:
 
-                                    save_results(res_path, inst_id, solver, model_name, result)
+                                    utils.common_save_results(res_path, inst_id, solver, result, model_name)
     print("\nDone!")
 
 
 def handle_args(args):
-    model_folder = f"models_CP/{args.models}"
-    instance_folder = f"instances_CP/{args.instances}"
+    if args.models == 'custom':
+        model = "models_CP/all/" + input("Type the name of the model you want to use: ")
+        while(not os.path.isfile(model)):
+            model = "models_CP/all/" + input(f"\n{model} doesn't exist! Try again: ")
+        os.system(f"rm -r models_CP/custom/*") # remove previous custom models
+        os.system(f"cp {model} models_CP/custom/") # copy the selected model in the custom folder
+        
+        model_folder = "models_CP/custom"
+
+    else:
+        model_folder = f"models_CP/{args.models}"
+    
+    if args.instances.isdigit():
+        selected_instances = [int(args.instances)]
+    else:
+        selected_instances = list(map(int, args.instances.strip("[]").split(",")))
+
     results_folder = args.results
     solvers = ['gecode','chuffed'] if args.solvers == 'all' else [args.solvers]
-    save = True if args.save == 'true' else False
-    mode = args.mode
+    save = args.save 
+    time_limit = args.time_limit
 
-    if args.mode == 'superuser':
-    # read from keyboard the model
-        model_folder = "models_CP/all/" + input("Type the name of the model you want to use: ")
-        while(not os.path.isfile(model_folder)):
-            model_folder = "models_CP/all/" + input(f"{model_folder} doesn't exist! Try again: ")
-        print("")
-
-        instance_folder = "instances_CP/all/" + input("Type the name of the instance to solve: ")
-        while(not os.path.isfile(instance_folder)):
-            instance_folder = "instances_CP/all/" + input(f"{instance_folder} doesn't exist! Try again: ")
-        print("")
-
-        solvers = input('Select the solver ("gecode" or "chuffed"): \nnote: chuffed solver is not compatible with lns models!\n')
-        while(solvers not in ["gecode","chuffed"]):
-             solvers = input(f"{solvers} doesn't exist! Try again: ")
-        print("")
-    
-
-
-    return model_folder, instance_folder, results_folder, solvers, mode, save
+    return model_folder, selected_instances, results_folder, solvers, save, time_limit
 
 
 if __name__ == "__main__":
 
-    model_folder, instance_folder, results_folder, solvers, mode, save = handle_args(utils.parsing_arguments(program='cp'))
+    model_folder, selected_instances, results_folder, solvers, save, time_limit = handle_args(utils.parsing_arguments(program='cp'))
     
-    print(f"Modality: {mode.upper()}")
     print(f"Model folder: {model_folder}")
-    print(f"Instance folder: {instance_folder}")
+    print(f"Selected instances: {selected_instances}")
     print(f"Results folder: {results_folder}")
     print(f"Solvers: {solvers}")
     print(f"Save results: {save}")
+    print(f"Time limit: {time_limit}")
 
-    main(model_folder, instance_folder, results_folder, solvers, mode, save)
+    main(model_folder, selected_instances, results_folder, solvers, save, time_limit)
 
     # HELP
 
