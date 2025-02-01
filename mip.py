@@ -17,15 +17,9 @@ class MIP_solver:
     __L=[] #max load for each courier
     __S=[] #size of each item
 
-    __n_loc=0 #number of locations in the problem
-    __origin = 0 #index of the origin in the matrix 
-
-    __solver =''
-    __multiple_solvers=False
-
     #decision variables
     __lp_prob =''
-    __x='' #3d array which is 1 if ...
+    __x='' 
     __courier_dist=''
 
     
@@ -39,7 +33,7 @@ class MIP_solver:
         self.__lp_prob = pl.LpProblem("Courier_Routing_Optimization", pl.LpMinimize)
         self.__inst_path=inst_path
 
-        #self.run_model()
+
             
     def __compute_upper_bound(self):
         ''''
@@ -97,13 +91,13 @@ class MIP_solver:
         max_route_distance = pl.LpVariable("max_route_distance", lowBound=lower_bound, upBound=upper_bound, cat="Integer")
 
 
-        courier_weights =[]
+        self.__courier_weights =[]
         self.__courier_dist=[]
 
-        for courier in range(self.__m):
+        for courier in range(self.__m): #one for each courier
 
             weights = pl.LpVariable(f"courier_weight_{courier}", lowBound=0, upBound=self.__L[courier], cat="Integer")
-            courier_weights.append(weights)
+            self.__courier_weights.append(weights)
 
             distance = pl.LpVariable(f"courier_distance_{courier}", cat="Integer", lowBound=min_courier_dist, upBound=upper_bound)
             self.__courier_dist.append(distance)
@@ -113,7 +107,7 @@ class MIP_solver:
 
         # Weight constraints for each courier
         for courier in range(self.__m):
-            self.__lp_prob += courier_weights[courier] == pl.LpAffineExpression(
+            self.__lp_prob += self.__courier_weights[courier] == pl.LpAffineExpression(
                 [(self.__x[i][j][courier], self.__S[j]) for i in range(self.__n + 1) for j in range(self.__n)]
             )
 
@@ -160,21 +154,24 @@ class MIP_solver:
 
 
     
-    def __extract_ordered_routes(self,x, n_cities, n_couriers):
+    def __extract_ordered_routes(self):
         """
         Extracts the ordered routes for each courier from the decision variables.
 
         Args:
-            x: Decision variables indicating travel between locations.
-            depot: Index of the depot.
             n_cities: Number of locations (including depot).
             n_couriers: Number of couriers.
 
         Returns:
             A list of ordered routes for each courier.
         """
+        n_cities= self.__n + 1
+        n_couriers= self.__m
+
         sol = []
         depot=n_cities-1
+
+
         
         for c in range(n_couriers):
             route = []  
@@ -182,7 +179,7 @@ class MIP_solver:
             
             # Step 1: Find the first city after the depot
             for j in range(n_cities-1):
-                if pl.value(x[n_cities-1][j][c]) > 0.5:
+                if pl.value(self.__x[n_cities-1][j][c]) > 0.5:
                     route.append(j+1)
                     current_location = j
                     break
@@ -191,7 +188,7 @@ class MIP_solver:
             while current_location != depot:
                 next_location = None
                 for j in range(n_cities):
-                    if j in x[current_location] and pl.value(x[current_location][j][c]) > 0.5:
+                    if j in self.__x[current_location] and pl.value(self.__x[current_location][j][c]) > 0.5:
                         next_location = j
                         break
 
@@ -221,17 +218,19 @@ class MIP_solver:
         solution = []
         solve_time=300
         optimal = False
+        obj=0
         if status == 1:
-            solution = self.__extract_ordered_routes(self.__x, self.__n + 1, self.__m)
+            solution = self.__extract_ordered_routes()
             solve_time = min(floor(self.__lp_prob.solutionTime), 300)
             optimal = status == 1 and solve_time < self.__time_limit
+            obj = int(pl.value(self.__lp_prob.objective))
 
         # Prepare the result entry for this solver
         result_entry = {
             "CBC": {
                 "time": solve_time,
                 "optimal": optimal,
-                "obj": int(pl.value(self.__lp_prob.objective)),
+                "obj": obj,
                 "sol": solution,
             }
         }
@@ -273,20 +272,14 @@ class MIP_solver:
         #initialize all the problem variables
         self.__m, self.__n, self.__L,  self.__S, self.__D =  read_dat_file(instances_path)
             
-
         self.__configure_problem()
-        highs=pl.getSolver('PULP_CBC_CMD', timeLimit=self.__time_limit,msg=True)
+        highs=pl.getSolver('PULP_CBC_CMD', timeLimit=self.__time_limit,msg=False)
         self.__lp_prob.solve(highs)
 
         status=self.__lp_prob.status
-        #print(f'++++++++++++++++++++++ \n{status}')
         if status == 1:
-            solve_time= 300 if floor(self.__lp_prob.solutionTime) > 300 else floor(self.__lp_prob.solutionTime)
-            opt=(self.__time_limit > solve_time)
-            #print(f'++++++SolveTime:{self.__lp_prob.objective, solve_time}++++++')
-            #print(f'++++++++++++++++++++ \n OBJECTIVE VALUE: {value(self.__lp_prob.objective)} \n++++++++++++++++++++')
-        else:
-            
+            print('Solution found')
+        else:     
             print('Failed to find a solution.....')
 
         
@@ -322,8 +315,8 @@ def run_instances(instances, inst_path, res_path, print_summary, time_limit=300,
 if __name__ == "__main__":
     # Define and parse the arguments
     parser = argparse.ArgumentParser(description="A MIP solver script with customizable arguments.")
-    parser.add_argument("--instances", "-i", required=True, help="Path to the folder containing instance files.")
-    parser.add_argument("--results", "-r", required=True, help="Path to the base folder where results will be stored.")
+    parser.add_argument("--instances", "-i", help="Path to the folder containing instance files.", default='./instances/')
+    parser.add_argument("--results", "-r",  help="Path to the base folder where results will be stored.", default='./results/')
     parser.add_argument("--folder-name", "-f", default="MIP", 
                         help="Name of the subfolder to store results (default: MIP).")
     parser.add_argument("--selected", "-s", default="1,2,3,4,5,6,7,8,9,10", 
@@ -363,6 +356,5 @@ if __name__ == "__main__":
 
 
 
-
 #example execution for the code
-#python3 mip.py -i './instances/' -r './results/MIP' -s '1,2,3,4,5' --print-summary
+#python3 mip.py -i './instances/' -r './results/' -s '1,2,3,4,5' --print-summary
