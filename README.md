@@ -51,6 +51,34 @@ optional arguments:
 ### **Run mip.py** on setup-ed docker <br/>
 ---
 
+Run command: `python3 mip.py` <br/><br/>
+Help menu displaying changeable parameters:
+
+```
+usage: mip.py [-h] [--instances INSTANCES] [--results RESULTS] [--folder-name FOLDER_NAME]
+              [--selected SELECTED] [--time-limit TIME_LIMIT] [--print-summary]
+
+A MIP solver script with customizable arguments.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --instances INSTANCES, -i INSTANCES
+                        Path to the folder containing instance files. Default = "./instances/"
+  --results RESULTS, -r RESULTS
+                        Path to the base folder where results will be stored. Default = "./results/"
+  --folder-name FOLDER_NAME, -f FOLDER_NAME
+                        Name of the subfolder to store results. Default: "MIP".
+  --selected SELECTED, -s SELECTED
+                        An integer or a list of integers specifying selected instances.
+                        Default: "1,2,3,4,5,6,7,8,9,10".
+  --time-limit TIME_LIMIT, -t TIME_LIMIT
+                        Time limit for solving each instance in seconds. Must be an integer.
+                        Default: 300.
+  --print-summary, -p   Enable verbose output. Default: False.
+```
+
+
+
 ### **Run check_solutions.py** on setup-ed docker <br/>
 ---
 `python3 check_solution.py instances results/`
