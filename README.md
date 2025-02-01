@@ -45,7 +45,7 @@ Run command: `python3 smt.py` <br/><br/>
 Help menu displaying changeable parameters:
 ```
 usage: smt.py [-h] [--instances-folder INSTANCES_FOLDER] [--results-folder RESULTS_FOLDER] [--results-subfolder-name RESULTS_SUBFOLDER_NAME]
-              [--instances INSTANCES] [--time-limit TIME_LIMIT]
+              [--instances INSTANCES] [--time-limit TIME_LIMIT] [--verbose VERBOSE]
 
 Solve problems with specified solver and instances using SMT.
 
@@ -62,6 +62,7 @@ optional arguments:
                         "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21").
   --time-limit TIME_LIMIT, -tl TIME_LIMIT
                         Time limit for the program in seconds. Must be an integer. Default: 300.
+  --verbose VERBOSE     Enable verbose output (select: True or False)
 ```
 ### **Run mip.py** on setup-ed docker <br/>
 ---
