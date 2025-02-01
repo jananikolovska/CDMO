@@ -17,10 +17,25 @@ _Find report in repository: REPORT.pdf_
 Run command: `python3 cp.py`  <br/><br/>
 Help menu displaying changeable parameters:
 ```
-usage: cp.py [-h] [--mode {normal,superuser}] [--models {all,sym,lns,plain,custom}] [--instances {all,soft,hard}] [--solvers {all,gecode,chuffed}]
-                        Specify the solver to use. Options: all, gecode, chuffed.
-  --save {true,false}   Specify whether you want the results saved in a JSON.
-  --results RESULTS     Specify where do you want to save the results.
+usage: cp.py [-h] [--models {all,sym,lns,plain,custom}] [--instances INSTANCES] [--solvers {all,gecode,chuffed}] [--save SAVE] [--results RESULTS] [--time-limit TIME_LIMIT]
+                        
+Solve problems with specified solver and instances using CP.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --models {all,sym,lns,plain,custom}, -m {all,sym,lns,plain,custom}
+                        Specify the model to use. Options: all, sym, lns, plain, custom. Default: all.
+                        If custom is selected, the system will ask to type the name of a specific model (e.g: sym.mzn)
+  --instances INSTANCES, -i INSTANCES
+                        An integer or a list of integers specifying selected instances. Default: "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21".
+  --solvers {all,gecode,chuffed}, -s {all,gecode,chuffed}
+                        Specify the solver to use. Options: all, gecode, chuffed. Default: all
+  --save SAVE, -sv SAVE
+                        Enable saving in JSON format. (select: True or False)
+  --results RESULTS, -r RESULTS
+                        Specify where do you want to save the results. Default: results
+  --time-limit TIME_LIMIT, -tl TIME_LIMIT
+                        Time limit for the program in seconds. Must be an integer. Default: 300.
 ```
 
 

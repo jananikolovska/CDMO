@@ -1,10 +1,8 @@
-import sys
 import minizinc
 import time
 import datetime
 import os
 import math
-import json
 import numpy as np
 from utils import utils
 
@@ -58,7 +56,8 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     if error or res.status == minizinc.Status.UNKNOWN:
         if not error:
             print("[UNK] Time limit reached. No solution found.") 
-        solving_time = 300
+        
+        solving_time = int(time_limit.total_seconds())
         optimal = False
         obj = 0
         sol = None
@@ -77,7 +76,7 @@ def solve_instance(model_path, instance_path, solver, time_limit):
         
         if res.status == minizinc.Status.SATISFIED:
             print(f"[SAT] Solution found! obj = {obj}")
-            solving_time = 300
+            solving_time = int(time_limit.total_seconds())
             optimal = False
             
         elif res.status == minizinc.Status.OPTIMAL_SOLUTION:
@@ -96,24 +95,30 @@ def solve_instance(model_path, instance_path, solver, time_limit):
     return result, round(elapsed_time,2)
 
 
-def save_results(res_path, inst_id, solver, model_name, result):
+def handle_args(args):
+    if args.models == 'custom':
+        model = "models_CP/all/" + input("\nType the name of the model you want to use: ")
+        while(not os.path.isfile(model)):
+            model = "models_CP/all/" + input(f"\n{model} doesn't exist! Try again: ")
+        os.system(f"rm -r models_CP/custom/*") 
+        os.system(f"cp {model} models_CP/custom/") 
+        
+        model_folder = "models_CP/custom"
 
-    os.makedirs(res_path, exist_ok=True)
-    output_file_path = os.path.join(res_path, f"{inst_id}.json")
-    configuration = solver + '_' + model_name
-
-    if os.path.exists(output_file_path):
-        with open(output_file_path, "r") as json_file:
-            existing_data = json.load(json_file)
     else:
-        existing_data = {}
+        model_folder = f"models_CP/{args.models}"
+    
+    if args.instances.isdigit():
+        selected_instances = [int(args.instances)]
+    else:
+        selected_instances = list(map(int, args.instances.strip("[]").split(",")))
 
-    existing_data[configuration] = result
+    results_folder = args.results
+    solvers = ['gecode','chuffed'] if args.solvers == 'all' else [args.solvers]
+    save = args.save 
+    time_limit = args.time_limit
 
-    with open(output_file_path, "w") as json_file:
-        json.dump(existing_data, json_file, indent=4)
-
-    print(f"data saved ---> {output_file_path}")
+    return model_folder, selected_instances, results_folder, solvers, save, time_limit
 
 
 def main(model_folder, selected_instances, result_folder, solvers, save, time_limit=300):
@@ -122,9 +127,9 @@ def main(model_folder, selected_instances, result_folder, solvers, save, time_li
     time_limit = datetime.timedelta(seconds=int(time_limit))
 
     if save:
-        print(f"Results saving ENABLED on {res_path}")
+        print(f"\nResults saving ENABLED on {res_path}")
     else:
-        print("Results saving DISABLED.")
+        print("\nResults saving DISABLED.")
 
     for model_name in os.listdir(model_folder):
         model_path = os.path.join(model_folder, model_name)
@@ -145,41 +150,16 @@ def main(model_folder, selected_instances, result_folder, solvers, save, time_li
 
                                 if save:
 
-                                    utils.save_results(res_path, inst_id, solver, result, model_name)
+                                    utils.save_results(res_path, inst_id, solver, result, model_name=model_name)
     print("\nDone!")
 
-
-def handle_args(args):
-    if args.models == 'custom':
-        model = "models_CP/all/" + input("Type the name of the model you want to use: ")
-        while(not os.path.isfile(model)):
-            model = "models_CP/all/" + input(f"\n{model} doesn't exist! Try again: ")
-        os.system(f"rm -r models_CP/custom/*") # remove previous custom models
-        os.system(f"cp {model} models_CP/custom/") # copy the selected model in the custom folder
-        
-        model_folder = "models_CP/custom"
-
-    else:
-        model_folder = f"models_CP/{args.models}"
-    
-    if args.instances.isdigit():
-        selected_instances = [int(args.instances)]
-    else:
-        selected_instances = list(map(int, args.instances.strip("[]").split(",")))
-
-    results_folder = args.results
-    solvers = ['gecode','chuffed'] if args.solvers == 'all' else [args.solvers]
-    save = args.save 
-    time_limit = args.time_limit
-
-    return model_folder, selected_instances, results_folder, solvers, save, time_limit
 
 
 if __name__ == "__main__":
 
     model_folder, selected_instances, results_folder, solvers, save, time_limit = handle_args(utils.parsing_arguments(program='cp'))
     
-    print(f"Model folder: {model_folder}")
+    print(f"\nModel folder: {model_folder}")
     print(f"Selected instances: {selected_instances}")
     print(f"Results folder: {results_folder}")
     print(f"Solvers: {solvers}")
@@ -187,39 +167,6 @@ if __name__ == "__main__":
     print(f"Time limit: {time_limit}")
 
     main(model_folder, selected_instances, results_folder, solvers, save, time_limit)
-
-    # HELP
-
-    # cp.py accepts the following optional commands:
-
-    # --models: 
-    # choices=['all', 'sym', 'lns', 'plain'],
-    # default="all",
-    # help="Specify the cp models to use."
-
-    # --instances: 
-    # choices=['all', 'soft', 'hard'],
-    # default="all",
-    # help="Specify the instances to process."
-
-    # --solvers
-    # choices=['all', 'gecode', 'chuffed'],
-    # default="all",
-    # help="Specify the solver to use."
-
-    # --save
-    # choices=['true', 'false'],
-    # default='true',
-    # help="Specify whether you want the results saved in a JSON."
-
-    # --results 
-    # default='results',
-    # help="Specify where do you want to save the results."
-
-    # --mode
-    # choices=['normal', 'superuser'],
-    # default='normal',
-    # help="Specify which mode to run. If 'superuser' is selected, no need to specify models, instances and solvers."
 
 
 

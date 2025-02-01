@@ -196,39 +196,20 @@ def parsing_arguments(program):
         parser.add_argument("--verbose", type=lambda x: (str(x).lower() == "true"), default=True, help="Enable verbose output (select: True or False)")
 
     
-    if program == 'cp':
-       
-        # Add the --models flag
-        parser.add_argument(
-            '--models',
-            choices=['all', 'sym', 'lns', 'plain', 'custom'],
-            default='all',
-            help="Specify the model to use. Options: all, sym, lns, plain, custom. Default: all."
-        )
-
+    if program == 'cp':    
+        parser.add_argument('--models', '-m', choices=['all', 'sym', 'lns', 'plain', 'custom'], default='all',
+                            help="Specify the model to use. Options: all, sym, lns, plain, custom. Default: all." 
+                            "If custom is selected, the system will ask to type the name of a specific model (e.g: sym.mzn)")
         parser.add_argument("--instances", "-i", default="1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
                             help="An integer or a list of integers specifying selected instances. "
-                                 "Default: \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21\").")
+                                 "Default: \"1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21\".")       
+        parser.add_argument('--solvers', '-s', choices=['all', 'gecode', 'chuffed'], default='all',
+                            help="Specify the solver to use. Options: all, gecode, chuffed. Default: all")
+        parser.add_argument('--save', '-sv', type=lambda x: (str(x).lower() == "true"), default=True, help="Enable saving in JSON format. (select: True or False)")
 
-        # Add the --solvers flag
-        parser.add_argument(
-            '--solvers',
-            choices=['all', 'gecode', 'chuffed'],
-            default='all',
-            help="Specify the solver to use. Options: all, gecode, chuffed. Default: all"
-        )
-
-        # Add the --save flag
-        parser.add_argument('--save', type=lambda x: (str(x).lower() == "true"), default=False, help="Enable saving in JSON format. (select: True or False)")
-        
-
-        parser.add_argument(
-            '--results',
-            default='results',
-            help="Specify where do you want to save the results. Default: results"
-        )
-
-        parser.add_argument("--time-limit", "-tl", type=int, default=300, required=False,
+        parser.add_argument('--results', '-r', default='results',
+                            help="Specify where do you want to save the results. Default: results")
+        parser.add_argument("--time-limit", "-tl", type=int, default=300, required=False, 
                             help="Time limit for the program in seconds. Must be an integer. Default: 300.")
 
         # Disallow unrecognized arguments

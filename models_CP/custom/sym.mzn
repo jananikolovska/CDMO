@@ -69,21 +69,31 @@ constraint forall(p in ITEMS)(sum(c in COURIERS)(packages[c,p]) = 1); % implied 
 % counting the actual load
 constraint forall(c in COURIERS)(actual_load[c] = sum(p in ITEMS where packages[c,p] = 1)(weights[p]));
 
+%        SYMMETRY BREAKING CONSTRAINTS
+
+%        two couriers with the same maximum load can be exchanged
+constraint forall(c1,c2 in COURIERS where c1<c2) (
+    (max_load[c1] = max_load[c2])
+    ->(
+    lex_lesseq([assign[p] = c1 | p in ITEMS], [assign[p] = c2 | p in ITEMS]) 
+    )
+);
+
+%        two couriers that haven't filled their capacity can be exchanged (too expensive to compute on large instances. no solution found)
+constraint forall(c1,c2 in COURIERS where c1<c2) (
+    (max([actual_load[c1],actual_load[c2]])<min([max_load[c1],max_load[c2]]))
+    ->(
+    lex_lesseq([assign[p] = c1 | p in ITEMS], [assign[p] = c2 | p in ITEMS]) 
+    )
+);
+
+
 %        counting the total distance travelled by each courier
 constraint forall(c in COURIERS)(total_distance[c] = sum(i in NODES) (distances[i,path[c,i]]));
 
 % Objective: Minimize the maximum distance traveled by any courier
 
-int: percentage = 90;
-
-solve 
-  :: seq_search([
-  int_search(assign,dom_w_deg, indomain_random),
-  int_search(path, dom_w_deg, indomain_random),    
-])
-:: relax_and_reconstruct(assign,percentage) 
-::restart_luby(100)
-minimize max(c in COURIERS)(total_distance[c]);
+solve minimize max(c in COURIERS)(total_distance[c]);
 
 
 
