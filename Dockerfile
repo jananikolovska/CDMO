@@ -21,7 +21,7 @@ RUN wget https://github.com/MiniZinc/MiniZincIDE/releases/download/2.6.4/MiniZin
 ENV PATH="/opt/minizinc/bin:$PATH"
 
 # Install Python packages
-RUN pip3 install --no-cache-dir z3-solver numpy matplotlib pandas minizinc
+RUN pip3 install --no-cache-dir z3-solver numpy matplotlib pandas minizinc pulp
 
 # Set the working directory
 WORKDIR /app
