@@ -1,8 +1,7 @@
 import argparse
 import pulp as pl
 import numpy as np
-from utils import *
-from utils1 import *
+from utils.utils import *
 from math import floor
 import json
 
@@ -37,7 +36,7 @@ class MIP_solver:
         self.__time_limit=time_limit
         self.__res_path=res_path
 
-        self.__lp_prob = LpProblem("Courier_Routing_Optimization", LpMinimize)
+        self.__lp_prob = pl.LpProblem("Courier_Routing_Optimization", pl.LpMinimize)
         self.__inst_path=inst_path
 
         #self.run_model()
@@ -85,7 +84,7 @@ class MIP_solver:
 
         num_cities = self.__D.shape[0] - 1
         depot = num_cities + 1
-
+    
         upper_bound = self.__compute_upper_bound()
         lower_bound = self.__compute_lower_bound()
 
@@ -93,9 +92,9 @@ class MIP_solver:
 
 
         # Decision variables
-        self.__x = LpVariable.dicts("route", (range(depot), range(depot), range(self.__m)), cat="Binary")
-        node_vars = LpVariable.dicts("node", (range(num_cities), range(self.__m)), lowBound=0, upBound=depot - 1, cat="Integer")
-        max_route_distance = LpVariable("max_route_distance", lowBound=lower_bound, upBound=upper_bound, cat="Integer")
+        self.__x = pl.LpVariable.dicts("route", (range(depot), range(depot), range(self.__m)), cat="Binary")
+        u = pl.LpVariable.dicts("node", (range(num_cities), range(self.__m)), lowBound=0, upBound=depot - 1, cat="Integer")
+        max_route_distance = pl.LpVariable("max_route_distance", lowBound=lower_bound, upBound=upper_bound, cat="Integer")
 
 
         courier_weights =[]
@@ -103,10 +102,10 @@ class MIP_solver:
 
         for courier in range(self.__m):
 
-            weights = LpVariable(f"courier_weight_{courier}", lowBound=0, upBound=self.__L[courier], cat="Integer")
+            weights = pl.LpVariable(f"courier_weight_{courier}", lowBound=0, upBound=self.__L[courier], cat="Integer")
             courier_weights.append(weights)
 
-            distance = LpVariable(f"courier_distance_{courier}", cat="Integer", lowBound=min_courier_dist, upBound=upper_bound)
+            distance = pl.LpVariable(f"courier_distance_{courier}", cat="Integer", lowBound=min_courier_dist, upBound=upper_bound)
             self.__courier_dist.append(distance)
         
 
@@ -114,29 +113,29 @@ class MIP_solver:
 
         # Weight constraints for each courier
         for courier in range(self.__m):
-            self.__lp_prob += courier_weights[courier] == LpAffineExpression(
+            self.__lp_prob += courier_weights[courier] == pl.LpAffineExpression(
                 [(self.__x[i][j][courier], self.__S[j]) for i in range(self.__n + 1) for j in range(self.__n)]
             )
 
         # Prevent self-looping arcs
-        self.__lp_prob += lpSum(self.__x[i][i][courier] for i in range(depot) for courier in range(self.__m)) == 0
+        self.__lp_prob += pl.lpSum(self.__x[i][i][courier] for i in range(depot) for courier in range(self.__m)) == 0
 
         # Each city visited exactly once
         for city in range(num_cities):
-            self.__lp_prob += lpSum(self.__x[i][city][courier] for i in range(depot) for courier in range(self.__m)) == 1
+            self.__lp_prob += pl.lpSum(self.__x[i][city][courier] for i in range(depot) for courier in range(self.__m)) == 1
 
         # Each courier departs from the depot
         for courier in range(self.__m):
-            self.__lp_prob += lpSum(self.__x[num_cities][j][courier] for j in range(num_cities)) == 1
+            self.__lp_prob += pl.lpSum(self.__x[num_cities][j][courier] for j in range(num_cities)) == 1
 
         # Each courier returns to the depot
         for courier in range(self.__m):
-            self.__lp_prob += lpSum(self.__x[i][num_cities][courier] for i in range(num_cities)) == 1
+            self.__lp_prob += pl.lpSum(self.__x[i][num_cities][courier] for i in range(num_cities)) == 1
 
         # Path connectivity constraints
         for city in range(depot):
             for courier in range(self.__m):
-                self.__lp_prob += lpSum(self.__x[i][city][courier] for i in range(depot)) == lpSum(self.__x[city][i][courier] for i in range(depot))
+                self.__lp_prob += pl.lpSum(self.__x[i][city][courier] for i in range(depot)) == pl.lpSum(self.__x[city][i][courier] for i in range(depot))
 
         # Ensure no double usage of arcs
         for courier in range(self.__m):
@@ -149,11 +148,11 @@ class MIP_solver:
             for i in range(num_cities):
                 for j in range(num_cities):
                     if i != j:
-                        self.__lp_prob += node_vars[i][courier] - node_vars[j][courier] + num_cities * self.__x[i][j][courier] <= num_cities - 1
+                        self.__lp_prob += u[i][courier] - u[j][courier] + num_cities * self.__x[i][j][courier] <= num_cities - 1
 
         # Calculate distances for each courier
         for courier in range(self.__m):
-            self.__lp_prob += lpSum(self.__x[i][j][courier] * self.__D[i][j] for i in range(depot) for j in range(depot)) == self.__courier_dist[courier]
+            self.__lp_prob += pl.lpSum(self.__x[i][j][courier] * self.__D[i][j] for i in range(depot) for j in range(depot)) == self.__courier_dist[courier]
 
         # Max distance constraint
         for dist in self.__courier_dist:
@@ -161,6 +160,52 @@ class MIP_solver:
 
 
     
+    def __extract_ordered_routes(self,x, n_cities, n_couriers):
+        """
+        Extracts the ordered routes for each courier from the decision variables.
+
+        Args:
+            x: Decision variables indicating travel between locations.
+            depot: Index of the depot.
+            n_cities: Number of locations (including depot).
+            n_couriers: Number of couriers.
+
+        Returns:
+            A list of ordered routes for each courier.
+        """
+        sol = []
+        depot=n_cities-1
+        
+        for c in range(n_couriers):
+            route = []  
+            current_location = depot
+            
+            # Step 1: Find the first city after the depot
+            for j in range(n_cities-1):
+                if pl.value(x[n_cities-1][j][c]) > 0.5:
+                    route.append(j+1)
+                    current_location = j
+                    break
+
+            # Step 2: Iterate until the courier returns to the depot
+            while current_location != depot:
+                next_location = None
+                for j in range(n_cities):
+                    if j in x[current_location] and pl.value(x[current_location][j][c]) > 0.5:
+                        next_location = j
+                        break
+
+                if next_location is None or next_location == depot:
+                    break  # Stop when reaching depot again
+
+                route.append(next_location+1)
+                current_location = next_location  
+
+            sol.append(route)
+
+        return sol
+
+
     def __create_json(self, status, print_summary):
         """
         Writes the results of the solver into a JSON file in the required format.
@@ -168,29 +213,25 @@ class MIP_solver:
         Args:
             status: Status of the solver (e.g., 1 if successful, 0 otherwise)
         """
-        # Build the file path for the output JSON file
         json_file_path = os.path.join(self.__res_path, f"{self.__instance}.json")
 
         # Determine if the solution is optimal
-        solve_time = 300 if floor(self.__lp_prob.solutionTime) > 300 else floor(self.__lp_prob.solutionTime)
-        optimal = status == 1 and solve_time < self.__time_limit
-
-        # Extract the solution if it exists
+        
+        
         solution = []
-        for courier in range(self.__m):
-            courier_route = []
-            for i in range(self.__n + 1):
-                for j in range(self.__n):
-                    if value(self.__x[i][j][courier]) > 0.5:  # Decision variable is binary
-                        courier_route.append(j + 1)  # Add 1 for 1-based indexing
-            solution.append(courier_route)
+        solve_time=300
+        optimal = False
+        if status == 1:
+            solution = self.__extract_ordered_routes(self.__x, self.__n + 1, self.__m)
+            solve_time = min(floor(self.__lp_prob.solutionTime), 300)
+            optimal = status == 1 and solve_time < self.__time_limit
 
         # Prepare the result entry for this solver
         result_entry = {
             "CBC": {
                 "time": solve_time,
                 "optimal": optimal,
-                "obj": value(self.__lp_prob.objective),
+                "obj": int(pl.value(self.__lp_prob.objective)),
                 "sol": solution,
             }
         }
@@ -198,7 +239,6 @@ class MIP_solver:
         print(result_entry)
 
         if print_summary:
-            # If the JSON file already exists, load it and append the new entry
             if os.path.exists(json_file_path):
                 with open(json_file_path, "r") as file:
                     data = json.load(file)
@@ -207,11 +247,11 @@ class MIP_solver:
 
             # Add the result entry to the JSON data
             data.update(result_entry)
-            
+
             # Write the updated data back to the JSON file
             with open(json_file_path, "w") as file:
                 json.dump(data, file, indent=4)
-            
+
         return result_entry
 
 
@@ -235,7 +275,7 @@ class MIP_solver:
             
 
         self.__configure_problem()
-        highs=getSolver('PULP_CBC_CMD', timeLimit=self.__time_limit,msg=False)
+        highs=pl.getSolver('PULP_CBC_CMD', timeLimit=self.__time_limit,msg=True)
         self.__lp_prob.solve(highs)
 
         status=self.__lp_prob.status
@@ -257,7 +297,6 @@ class MIP_solver:
         return self.__x
     
 
-#function which takes as an input an array with the instances to solve and the path to the instances
 
 def run_instances(instances, inst_path, res_path, print_summary, time_limit=300,):
     """
@@ -276,6 +315,7 @@ def run_instances(instances, inst_path, res_path, print_summary, time_limit=300,
         solver = MIP_solver(res_path, inst_path, time_limit)
         print(f"Solving instance {instance}...")
         solver.run_model_on_instance(instance, print_summary)
+        print('\n')
 
     print("All instances solved.")
 
@@ -324,5 +364,5 @@ if __name__ == "__main__":
 
 
 
-
-#python3 mip.py -i './instances/' -r './../res/MIP' -s '11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21' --print-summary 'True'
+#example execution for the code
+#python3 mip.py -i './instances/' -r './results/MIP' -s '1,2,3,4,5' --print-summary
