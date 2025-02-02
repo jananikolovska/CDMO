@@ -21,8 +21,8 @@ class MIP_solver:
     __lp_prob =''
     __x='' 
     __courier_dist=''
-
-    
+    __max_route_distance=0
+    __u=''
 
 
     def __init__(self,res_path,inst_path, time_limit = 300  ) -> None:
@@ -87,8 +87,8 @@ class MIP_solver:
 
         # Decision variables
         self.__x = pl.LpVariable.dicts("route", (range(depot), range(depot), range(self.__m)), cat="Binary")
-        u = pl.LpVariable.dicts("node", (range(num_cities), range(self.__m)), lowBound=0, upBound=depot - 1, cat="Integer")
-        max_route_distance = pl.LpVariable("max_route_distance", lowBound=lower_bound, upBound=upper_bound, cat="Integer")
+        self.__u = pl.LpVariable.dicts("node", (range(num_cities), range(self.__m)), lowBound=0, upBound=depot - 1, cat="Integer")
+        self.__max_route_distance = pl.LpVariable("max_route_distance", lowBound=lower_bound, upBound=upper_bound, cat="Integer")
 
 
         self.__courier_weights =[]
@@ -103,7 +103,7 @@ class MIP_solver:
             self.__courier_dist.append(distance)
         
 
-        self.__lp_prob += max_route_distance
+        self.__lp_prob += self.__max_route_distance
 
         # Weight constraints for each courier
         for courier in range(self.__m):
@@ -142,7 +142,7 @@ class MIP_solver:
             for i in range(num_cities):
                 for j in range(num_cities):
                     if i != j:
-                        self.__lp_prob += u[i][courier] - u[j][courier] + num_cities * self.__x[i][j][courier] <= num_cities - 1
+                        self.__lp_prob += self.__u[i][courier] - self.__u[j][courier] + num_cities * self.__x[i][j][courier] <= num_cities - 1
 
         # Calculate distances for each courier
         for courier in range(self.__m):
@@ -150,7 +150,7 @@ class MIP_solver:
 
         # Max distance constraint
         for dist in self.__courier_dist:
-            self.__lp_prob += max_route_distance >= dist
+            self.__lp_prob += self.__max_route_distance >= dist
 
 
     
