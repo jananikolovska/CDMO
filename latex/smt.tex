@@ -1,0 +1,171 @@
+\section{SMT Model}
+For the second approach, using SMT, we adopted a top-down methodology. To solve the task we were given, we began by adding all the constraints that initially seemed logical and made sense in the context of the problem. As we analyzed the model further, we identified and removed constraints that were redundant or unnecessary, improving its overall efficiency and performance.
+\subsection{Decision variables}
+The following decision variables have been used:
+\begin{itemize}
+    \item $x_{c,p}$; \textit{Domain}: Boolean, for $c \in C$ and $p \in I$; \textit{Semantics}: Represents whether courier $c$ is assigned to item $p$. The value of $x_{c,p}$ is `True` if courier $c$ is assigned to item $p$, and `False` otherwise.
+    
+    \item $y_{c,i,j}$; \textit{Domain}: Boolean, for $c \in C$ and $i$, $j$ $\in N$; \textit{Semantics}: Representing whether courier $c$ travels from location $i$ to location $j$. The value of $y_{c,i,j}$ is `True` if the courier travels directly from location $i$ to $j$, and `False` otherwise.
+    
+    \item $order_{c,p}$; \textit{Domain}: Integer $(\mathbb{Z})$, for $c \in C$ and $p \in I$; \textit{Semantics}: Represents the position of item $p$ in the delivery sequence of courier $c$.
+    \[
+    order_{c,p} = \begin{cases} 
+    > 0 & \text{if } x_{c,p} = \text{True} \\
+    < 0 & \text{if } x_{c,p} = \text{False}
+    \end{cases}
+    \]
+    This enables efficient calculation of the total travel cost and facilitates the reconstruction of the delivery route based on the determined order.
+
+    \item $d_{c}$: \textit{Domain}: List of integers $(\mathbb{Z})$ of size $m$; \textit{Semantics}: Represents the total distance traveled by courier $c$ on their assigned route, including travel from the depot to the items and back.
+
+    \item $max\_distance$; \textit{Domain}: Integer $(\mathbb{Z})$; \textit{Semantics}: Represents the maximum distance traveled by any courier. The objective is to minimize this value.
+
+
+\end{itemize}
+
+
+\subsubsection{Auxiliary variables}
+
+Item sizes and load capacities are encoded in Z3 as decision variables using integer lists, while the distance matrix is represented as a 2D list of integers. 
+
+To improve solver performance, we tried different sorting strategies and ultimately sorted the items in ascending order of size, adjusted the distance matrix accordingly, and sorted couriers by their load capacities. This approach achieved efficient results for the first ten instances by organizing the problem to align with Z3’s depth-first search, guided by Conflict-Driven Clause Learning (CDCL). Sorting also reduces symmetry, preventing redundant exploration of equivalent solutions and enhancing efficiency.
+
+
+
+\subsection{Objective function}
+As given in the problem description, the goal is to minimize the maximum distance traveled among all couriers. In our SMT model implementation  is minimizing the variable $max\_distance$
+
+\[
+\min(\text{max\_distance}) = \min\left(\max\left(\{d_0, d_1, \dots, d_{\text{m}-1}\}\right)\right)
+\]
+, with $max\_distance$ and $d_c$ as explained in section 3.1
+
+\subsection{Constraints}
+\begin{itemize}
+\item \textbf{Demand Fulfillment}
+\[
+\sum_{c=0}^{\text{m}-1} \mathbf{1}(x_{c,p} = \text{True}) = 1 \quad \forall p \in I
+\]
+
+
+This constraint ensures each item must be assigned to exactly one courier. 
+\item \textbf{Capacity Constraint}
+\[
+\sum_{p=0}^{\text{n}-1} \mathbf{1}(x_{c,p} = \text{True}) * \text{w}_{p} \leq \text{l}_{c}, \quad \forall c \in C
+\]
+
+This ensures that each courier's total load must not exceed their capacity.
+\item \textbf{Early Exclusion of Undeliverable Items}
+\[
+\neg x_{c,p}, \quad \forall c \in C, \forall p \text{ such that } \text{w}_{p} > \text{l}_{c}
+\]
+If an item cannot fit in a courier’s load (i.e., item size exceeds the courier's capacity), then that courier cannot be assigned that item. This helps reduce the search space by eliminating impossible assignments.
+\item \textbf{At Least One Item Per Courier}
+\[
+\sum_{p=0}^{\text{n} - 1} \mathbf{1}(x_{c,p} = \text{True}) \geq 1, \quad \forall c \in C
+\]
+
+This constraint ensures that every courier is assigned at least one item. This has to hold since in any solution where a courier is left empty, we can always improve the solution by transferring one of the items assigned to another courier to the empty courier because of triangle inequality. 
+
+\item \textbf{No Loop Connections} 
+\[ \forall c \in C, \forall i \in N \quad y_{c,i,i} = False \]
+This constraint prevents a courier from staying at the same location.
+\item \textbf{Direction of Route}
+\[
+\forall c \in C, \ \forall p,q  \in I, \left( y_{c,q,p} \right) \Rightarrow \neg \left( y_{c,p,q} \right)
+\]
+This prevents a courier from traversing the same pair of items in the opposite direction, ensuring a valid route without inconsistent transitions.
+
+\item \textbf{Variable Link: Assignments and Route}
+
+\begin{align*}
+\sum_{p=0}^{n-1} \mathbf{1}(y_{c,p,i} = \text{True}) &= \mathbf{1}(x_{c,i} = \text{True}), \quad \forall c \in C, \forall i \in N, \\  
+\sum_{p=0}^{n-1} \mathbf{1}(y_{c,i,p} = \text{True}) &= \mathbf{1}(x_{c,i} = \text{True}), \quad \forall c \in C, \forall i \in N.
+\end{align*}
+
+\[
+\sum_{p=0}^{n-1} \mathbf{1}(y_{c,p,depot} = \text{True}) = 1, \quad 
+\sum_{p=0}^{n-1} \mathbf{1}(y_{c,depot,p} = \text{True}) = 1, \quad \forall c \in C
+\]
+
+
+This constraint establishes the relationship between the boolean variables \(y\) and \(x\) and assures consistency. It ensures that if an item \(p\) is assigned to a courier \(c\) (i.e., \(x_{c,p} = True\)), then the corresponding indicator variable \(y_{c,q,p}\) must be activated (i.e., \(y_{c,q,p} = True\)) for some \(q\). 
+
+\item \textbf{Variable Link: Assignments and Order}
+\[
+\begin{aligned}
+&\forall c \in C, \forall p \in I: &\quad \left( x_{c,p} = False \implies \text{order}_{c,p} < 0 \right) &\quad \land \left( x_{c,p} = True \implies \text{order}_{c,p} > 0 \right)
+\end{aligned}
+\]
+
+
+This constraint establishes the relationship between the boolean variable \(x\) and the integer variable $order$, enforcing positive values for $order$ when $x_{c,p}=True$, and negative when $x_{c,p}=False$, as explained in the description of the variable $order$.
+\item \textbf{Variable Link: Route and Order}
+\[
+\forall c \in C, \forall p, q \in I: \quad
+\left( y_{c,p,q} = True \implies \text{order}_{c,p} < \text{order}_{c,q} \right)
+\]
+
+This enforces a logical sequencing where items appear in the correct order along the route, respecting the transitions between locations.
+
+\item \textbf{Uniqueness of Order Variable}
+\[
+\forall c \in C: \quad
+\text{Distinct}\left( \left[ \text{order}_{c,p} \mid p \in I \right] \right)
+\]
+This guarantees that no two items assigned to the same courier share the same position in the delivery route, maintaining the integrity of the route's sequencing.
+
+\item \textbf{Preventing Redundant Transitions for Couriers with Multiple Items}
+
+\[
+\begin{aligned}
+&\forall c \in C, \forall p \in I: 
+&\quad \left( \sum_{q=0}^{\text{n} - 1}
+\mathbf{1}(x_{c,q} = \text{True}) > 1
+ \implies \right. 
+&\quad \quad \left. \neg \left( y_{c,depot,p} \land y_{c,p,depot} \right) \right)
+\end{aligned}
+\]
+
+If a courier is assigned multiple items, this constraint ensures at least one additional item is delivered before returning to the depot, reducing inefficient backtracking. While optional, it improved optimization speed in the first 10 instances by reducing the search space and eliminating redundant paths.
+
+\item \textbf{Distance Per Courier Calculation}
+
+\[ d_c = \sum_{i,j}^{\text{n}} \mathbf{1}(y_{c,i,j} = \text{True})* {D_{i,j}} \quad \forall c \in C
+\]
+
+This formula calculates the total distance traveled by any  courier 
+$c$ in $C$ by summing up the distances between locations that the courier travels using the variable $y$. The distances are taken from the distance matrix 
+$D$.
+
+\end{itemize}
+\subsubsection{Symmetry Breaking Constraints}
+To reduce symmetry and improve solver performance, the model includes the following:
+\begin{itemize}
+\item \textbf{Order of Couriers by Distance}
+\[ d_c \leq d_{c+1} \quad \forall c \in \{0, 1, \dots, \text{m} - 2\} \]
+The distances traveled by couriers are sorted in ascending order to break symmetry. This ensures that the solver does not waste time exploring equivalent solutions that differ only in the assignment of couriers 
+\end{itemize}
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+Inst. & SMT \\\hline
+1 & \textbf{14} \\
+2 & \textbf{226} \\
+3 & \textbf{12} \\
+4 & \textbf{220} \\
+5 & \textbf{206} \\
+6 & \textbf{322} \\
+7 & \textbf{167} \\
+8 & \textbf{186} \\
+9 & \textbf{436} \\
+10 & \textbf{244} \\
+11-21 & N/A \\
+\hline
+\end{tabular}
+\caption{\label{tab:smt_results}SMT Performance on all instances.}
+\end{table}
+
+\subsection{Validation}
+The SMT model detailed in this section was implemented using the Z3 library in Python. This implementation applies theories in Satisfiability Modulo Theories (SMT) such as linear arithmetic, array theory, and constraints to model the problem. For instances 1 through 10, the model efficiently computes solutions to optimality within a short period. However, for instances 11 through 21, the execution encounters a termination due to a 300-second pre-defined timeout, without discovering any solution. Table ~\ref{tab:smt_results}. 

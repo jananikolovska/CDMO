@@ -1,0 +1,75 @@
+\section{Introduction}
+
+
+In this report, we will explore how the problem of the Multiple Couriers Planning (MCP) is modeled and discuss various approaches to address it: Constraint Programming (CP), Satisfiability Modulo Theories (SMT) and Mixed-Integer Linear Programming (MIP). The project was completed by a group of three, with the modeling phase and boundary formula derivation done collaboratively. Following this, the implementation and specific adjustments for each approach were divided: Leonardo Chiarioni handled CP, Jana Nikolovska focused on SMT, and Andrea Cristiano worked on MIP. This division allowed for both teamwork and individual specialization.
+
+\subsection{Description of the problem}
+Given a set of items and a fleet of couriers, together with the respective weights and capacities, the MCP problem consists in finding a route for each courier so to deliver each item to its corresponding location. The goal is to minimize the maximum distance travelled by any of the courier. The couriers' journey start and end at the dispatch center, defined as \textit{depot}, and the distance matrix $D$ between the nodes is known to be asymmetric and in which triangle inequality holds:
+\begin{equation}
+\label{eq:triangle}
+    \forall i,j,k \in N: D_{i,k} \leq D_{i,j} + D_{j,k}
+\end{equation}
+That said, it's easy to derive that is always convenient for each courier to deliver at least an item. 
+
+\subsection{Parameters and Domains}
+Each of the approach tackled in solving the problem rely on the specification of the parameters for every instance to solve. In table \ref{tab:params} they are presented with their respective meaning.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{@{}lll@{}}
+        \toprule
+Name & Dimension     & Description                   \\ \midrule
+$m$    & $1$             & number of couriers            \\
+$n$    & $1$            & number of items               \\
+$l$    & $m$             & maximum load for each courier \\
+$w$    & $n$             & weight of each item          \\
+$D$    & $(n+1) \times (n+1)$ & distance matrix               \\ \bottomrule
+    \end{tabular}
+    \caption{Parameters of an instance of the problem.}
+    \label{tab:params}
+\end{table}
+To maximize the readability of the document, also the sets shown in table \ref{tab:sets} have been defined. We will refer to these tables in our formulas across the entire document.
+\begin{table}[H]
+    \centering
+    \begin{tabular}{@{}lllll@{}}
+        \toprule
+Name & Elements CP & Elements SMT/MIP & Description & Items of the set                \\ \midrule
+$C$    & $[1..m]$   & $[0..m-1]$          & Couriers  & $c$          \\
+$I$    & $[1..n]$  & $[0..n-1]$          & Items & $p, q$                \\
+$N$    & $[1..n+1]$   & $[0..n]$          & Nodes & $i, j, k$  \\ \bottomrule
+    \end{tabular}
+    \caption{Sets used for readability purposes.}
+    \label{tab:sets}
+\end{table}
+
+% \begin{table}[H]
+% \centering
+% \begin{tabular}{ccccc}
+% \hline
+% \multirow{2}{*}{Set} & \multicolumn{2}{c}{Elements} & \multirow{2}{*}{Description} & \multirow{2}{*}{Items of the set} \\
+%                      & CP            & SMT/MIP      &                              &                                   \\ \hline
+% C                    & {[}$1..m${]}    & {[}$0..m-1${]} & Couriers                     & $c$                                 \\
+% I                    & {[}$1..n${]}    & {[}$0..n-1${]} & Items                        & $p,q$                               \\
+% N                    & {[}$1..n+1${]}  & {[}$0..n${]}   & Nodes                        & $i,j,k$                             \\ \hline
+% \end{tabular}
+% \caption{Sets used for readability purposes.}
+%     \label{tab:sets}
+% \end{table}
+
+\subsection{Objective function}
+
+The objective function is the maximum distance traveled by any of the couriers, which needs to be minimized. The exact formulation and variables used to model this objective may vary depending on the specific implementation or approach, but the ultimate goal remains the same.
+
+\subsection{Bounds}
+To effectively reduce the search space of the solutions it is fundamental to constrain the objective value between an upper and a lower bound. \paragraph{Lower bound} Since we are minimizing the maximum distance travelled by any of the courier, we can consider the best possible scenario ($m = n$) in which every courier carries a package. In this specific case the maximum distance will be:
+\begin{equation}
+    LB = \max_{i \in N} D_{depot,i} + D_{i,depot}
+\end{equation}
+which can be set as the lower bound.
+\paragraph{Upper bound} Even though the upper bound is not as critical as the lower bound, we can consider the worst case scenario in which all the packages are assigned to only a courier, which will cover the longest route to visit all the nodes. In this case the maximum distance will be:
+\begin{equation}
+    UB = \max_{i \in N} \sum_{j \in N} D_{i,j}
+\end{equation}
+which can be set as the upper bound. It is worth to note that this will never be the case since \eqref{eq:triangle} holds.
+
+\subsection{Hardware}
+The testing phase for each of the three approaches happened on the personal devices of the developers. For the CP part, Leonardo Chiarioni used an Acer Aspire 5 (Intel Core i7, 8GB RAM); for the SMT part Jana Nikolovska used an  Acer ConceptD 3 (Intel Core i7, 16GB RAM); for the MIP part Andrea Cristiano used a 16' MacbookPro with M1Pro processor, 16GB of RAM. 

@@ -1,0 +1,44 @@
+\documentclass{article}
+\usepackage[backend=biber, style=alphabetic, citestyle=authoryear]{biblatex}
+\addbibresource{sample.bib} % Load your bibliography file
+
+% Language setting
+% Replace `english' with e.g. `spanish' to change the document language
+\usepackage[english]{babel}
+
+% Set page size and margins
+% Replace `letterpaper' with `a4paper' for UK/EU standard size
+\usepackage[letterpaper,top=2cm,bottom=2cm,left=3cm,right=3cm,marginparwidth=1.75cm]{geometry}
+
+% Useful packages
+\usepackage{amsmath}
+\usepackage{amsfonts} % for set of integer char
+\usepackage{graphicx}
+
+\usepackage{makecell, booktabs} % for tables
+\usepackage{multirow}
+\newcommand*\rot{\rotatebox{90}}
+
+\usepackage{float}
+
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+\title{Project Work
+Combinatorial Decision Making \& Optimization
+2023/2024}
+
+\author{Leonardo Chiarioni \\ Jana Nikolovska \\ Andrea Cristiano \\
+\{ leonardo.chiarioni, jana.nikolovska, andrea.cristiano \}@studio.unibo.it
+}
+
+
+\begin{document}
+\maketitle
+
+\input{intro}
+\input{cp}
+\input{smt}
+\input{mip}
+\input{conclusion}
+\printbibliography
+\end{document}

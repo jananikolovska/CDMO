@@ -1,0 +1,130 @@
+\section{MIP}
+
+The third approach we used to solve the problem is MIP. The MIP model for the problem mainly relies on the decision variable $x_{i,j,c}$,a boolean variable which contains every decision for every courier. To make the model more efficient we also integrated the Miller-Tucker-Zemlin (MTZ) formulation to solve sub-routes: this approach provide an elegant constraint which makes the solution more efficient. 
+
+\subsection{Decision variable}
+
+To function, the model uses the following decision variable:
+
+\begin{itemize}
+     \item $x_{i,j,c}$; \textit{Domain}: Boolean, for $i,j \in N$ and $c \in C$; \textit{Semantics}: Represents whether the path from $i$ to $j$ is part of the solution for courier $c$. Thus $x_{i,j,c}$ is \textit{True} if $c$ goes trough $[i,j]$, \textit{False} otherwise.
+     
+\end{itemize}
+
+\subsubsection{Auxiliary variables}
+
+\begin{itemize}
+    \item $u_{i,c}$ \textit{Domain}: Integer, for $i \in N$, $c \in C$; \textit{Semantics}: Auxiliary variable introduced to apply the Miller-Tucker-Zemlin (MTZ) formulation to solve sub-routes \cite{mtz}. 
+
+    \item $max\_route\_distance$: \textit{Domain}: Integer $(\mathbb{Z})$; \textit{Semantics}: this variable contains an integer which represents the distance travelled by each courier. Its value is bounded by the same bounds described in subsection \hyperlink{1.4}{1.4}.
+
+    \item $courier\_weights_c$: \textit{Domain}: Integer, $c \in C$; \textit{Semantics}: keeps track, for each courier, of the weight that it is carrying trough the route.
+
+
+     \item $courier\_distance_c$: \textit{Domain}: Integer, $c \in C$; \textit{Semantics}:keeps track, for each courier, of the amount of road travelled. 
+    
+    
+\end{itemize}
+
+\subsection{Constraints}
+
+\begin{itemize}
+ 
+
+
+   \item  \textbf{Weight Constraints for Each Courier}:
+   \[
+   \sum_{i=0}^n \sum_{j=1}^n x_{ijc} \cdot w_j
+ = \text{courier\_weights}_c \quad \forall c \in C
+   \]
+   Ensures the total weight carried by each courier \( c \) matches the specified capacity.
+
+\item  \textbf{Prevent Self-Looping Arcs}:
+   \[
+   \sum_{i=0}^n \sum_{c=0}^{m-1} x_{iic} = 0
+   \]
+   Ensures no courier travels from a node to itself.
+
+\item  \textbf{Each Node Visited Exactly Once}:
+   \[
+   \sum_{i=0}^n \sum_{c=0}^{m-1} x_{ijc} = 1 \quad \forall j \in \{1, \dots, n\}
+   \]
+   Ensures each node is visited exactly once by exactly one courier.
+
+\item  \textbf{Each Courier Departs from the Depot}:
+   \[
+   \sum_{j=1}^n x_{0jc} = 1 \quad \forall c \in C
+   \]
+   Ensures each courier \( c \) starts its route from the depot.
+
+\item  \textbf{Each Courier Returns to the Depot}:
+   \[
+   \sum_{i=1}^n x_{i0c} = 1 \quad \forall c \in C
+   \]
+   Ensures each courier \( C \) ends its route at the depot.
+
+\item  \textbf{Path Connectivity Constraints}:
+   \[
+   \sum_{i=0}^n x_{ijc} = \sum_{i=0}^n x_{jic} \quad \forall j \in \{1, \dots, n\}, \, \forall c \in C
+   \]
+   Ensures that if a courier enters a city, it must also leave that city.
+
+\item  \textbf{Ensure No Double Usage of Arcs}:
+   \[
+   x_{ijc} + x_{jic} \leq 1 \quad \forall i, j \in \{1, \dots, n\}, \, \forall c \in C
+   \]
+   Ensures no courier travels both from \( i \) to \( j \) and from \( j \) to \( i \).
+
+\item  \textbf{Subtour Elimination Constraints}:
+   \[
+   u_{ic} - u_{jc} + n \cdot x_{ijc} \leq n - 1 \quad \forall i, j \in \{1, \dots, n\}, \, i \neq j, \, \forall c \in C
+   \]
+   This constraint follows the MTZ formulation: it ensures that no subtours  ($A\xrightarrow{}B \xrightarrow{} A $) are formed by enforcing a logical order of visits.
+
+\item  \textbf{Maximum Distance Constraint}:
+    \[
+    \text{max\_route\_distance} \geq \text{courier\_dist}_c \quad \forall c \in C
+    \]
+    Ensures no courier's route exceeds the maximum allowed distance.
+\end{itemize}
+
+\subsection{Objective function}
+
+The objective function is defined as follows:
+
+\[
+\min \max_c \sum_{i,j =1}^{n+1} x_{i,j,c} \cdot D_{i,j}
+\]
+
+\subsection{Validation}
+
+The MIP model was implemented in Python, relying on the usage of the   \href{https://coin-or.github.io/pulp/index.html}{Pulp} library. To solve the problem we used the CBC solver,with a timeout of 300 seconds, which offered good performances on the first 10 instances, and provided a solution also to instance 13 and 16.
+
+\subsubsection{Results}
+
+The model performed well on the first 10 instances, providing optimal solutions to 9 out of the first 10 instances, with instance 7 being the only non optimal one. The following 11 instances proved to be more complex, but the model managed sub-optimal solutions for instance 13 and 16. 
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|c|}
+\hline
+Inst. & CBC \\\hline
+1 & \textbf{14} \\
+2 & \textbf{226} \\
+3 & \textbf{12} \\
+4 & \textbf{220} \\
+5 & \textbf{206} \\
+6 & \textbf{322} \\
+7 & 169 \\
+8 & \textbf{186} \\
+9 & \textbf{436} \\
+10 & \textbf{244} \\
+11-12 & N/A \\
+13 & 728 \\
+14-15 & N/A \\
+16 & 322 \\
+17-21 & N/A \\
+\hline
+\end{tabular}
+\caption{\label{tab:mip_results}MIP Performance on all instances.}
+\end{table}

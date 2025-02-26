@@ -1,0 +1,199 @@
+\section{CP model}
+
+The CP model is very simple yet effective, mainly relying on channeling as well as implied constraint to find routes for our couriers. The core idea of the model is to find a function $assign$ and a function $path$ so to assign to each courier the items to deliver and to find its corresponding route. 
+
+Starting from this, the model has been improved and adapted by exploiting global constraints and auxiliary variables to improve the overall performance. Every function is represented as a $d$-dimensional array variable, with $d$ being the number of arguments accepted by the function itself.
+
+\subsection{Decision variables}
+
+The following decision variables have been used:
+\begin{itemize}
+    \item $assign : \text{I} \to \text{C}$;  indicates which courier delivers which item. More specifically, $assign(p) = c$ means that item $p$ is delivered by courier $c$.
+    
+    \item $path : \text{C x N} \to \text{N}$;   defines the route for each courier $c$ by means of "next hops". More specifically:
+    \begin{equation}
+    \label{eq:path}
+    % \forall c \in \text{COURIERS},
+    % \forall p \in \text{NODES} :
+    path(c,i) =
+    \begin{cases}
+        j    & \text{$c$ travels $i \to j$} \\
+        i  & \text{$i$ is not in the path} 
+    \end{cases}
+    \end{equation}
+\end{itemize}
+
+\subsection{Auxiliary variables}
+
+In order to ease the modeling of the constraints and the objective of the task, the following auxiliary variables have been used:
+\begin{itemize}
+    \item $packages : \text{C x I} \to \text{\{0,1\}}$;  indicates which courier delivers which item. More specifically:
+    \begin{equation} 
+    \label{eq:packages}
+    packages(c,p) =
+    \begin{cases}
+        1    & \text{$c$ delivers $p$} \\
+        0    & \text{otherwise} 
+    \end{cases}
+    \end{equation}
+    
+    \item $a\_l : \text{C} \to \mathbb{Z}$;  keeps track of the actual load of each courier. More specifically, $a\_l(c) = 20$ means courier $c$ has been filled with packages whose total weight is $20$.
+
+    \item $total\_distance : \text{C} \to \{LB..UP\}$;  contains the distance travelled by each courier. More specifically, $total\_distance(c) = 100$ means courier $c$ 's path is such that its total distance is $100$.
+
+\end{itemize}
+
+
+\subsection{Constraints}
+The constraints will be presented in different sections: \textit{path, load, channeling} and \textit{symmetry breaking} constraints.
+
+\subsubsection{Path constraints}
+We need to ensure that the path of each courier is such that nodes cannot be visited multiple times:
+\begin{equation}
+    \forall c : \textit{alldifferent(path[c,N])}
+\end{equation}
+Every courier's path must be an hamiltonian sub-cycle:
+\begin{equation}
+    \forall c : \textit{subcircuit(path[c,N])}
+\end{equation}
+Every package must be shipped once and by only one courier:
+\begin{equation}
+    \forall p : \sum_{c} packages[c,p] = 1
+\end{equation}
+Thanks to \eqref{eq:triangle}, we know that each courier must ship at least 1 package. We can express this by constraining the last column of $path$, which represent the $depot$:
+\begin{equation}
+\begin{cases}
+    \textit{alldifferent}(path[C,n+1]) \\
+    \forall c : path[c,n+1] \neq n+1
+\end{cases}
+\end{equation}
+Each courier's route must start and end at the depot: this is already encoded by design in the $path$ variable since every path is an hamiltonian loop. We can easily constrain the total distance of each courier to be:
+\begin{equation}
+\forall c : total\_distance[c] =  \sum_{i} D_{i, path[c,i]}
+\end{equation}
+
+
+
+\subsubsection{Load constraints}
+In order to assign packages to couriers such to respect the maximum capacity, both global and simple constraints have been modeled and \textbf{separately tested}:
+\begin{equation}
+\label{eq:load1}
+    bin\_packing\_capa(l, assign, w)
+\end{equation}
+\begin{equation}
+\label{eq:load2}
+    \forall c : \sum_{\substack{p:\\ path[c,p] \neq p}} w[p] \leq l[c]
+\end{equation}
+\subsubsection{Channeling constraints}
+In order to have consistency between the auxiliary and the decision variables we need to relate them by using channeling constraints:
+\begin{equation}
+    \forall c, \forall p :
+    \begin{cases}
+    assign[p] \neq c \iff path[c, p] = p \iff packages[c,p] = 0  \\
+    assign[p] = c \iff path[c, p] \neq p \iff packages[c,p] = 1
+    \end{cases}
+\end{equation}
+\subsubsection{Symmetry breaking constraints}
+Symmetry has been broken using 2 constraints. The first one, which will be referred as \textit{simple}, breaks symmetry by imposing lexicographic ordering on all the couriers having the same capacity:
+\begin{equation}
+\label{eq:sym1}
+    \forall c_1<c_2 : l[c_1] = l[c_2] \implies 
+    [assign[I] = c_1] \leq_{lex} [assign[I] = c_2]
+\end{equation}
+The second constraint considers interchangeable also all those couriers who haven't filled their capacity (still respecting their maximum load):
+\begin{equation}
+\label{eq:sym2}
+    \begin{split}
+    \forall c_1<c_2 : \max\{ a\_l[c_1], a\_l[c_2] \} \leq \min\{ l[c_1], l[c_2] \} \implies \\
+    [assign[I] = c_1] \leq_{lex} [assign[I] = c_2]
+    \end{split}
+\end{equation}
+This requires also the computation of the actual load $a\_l$ with the following constraint:
+\begin{equation}
+    \forall c : a\_l[c] = \sum_{\substack{p:\\ packages[c,p] = 1}} w[p]
+\end{equation}
+
+\subsection{Objective function}
+The goal of the problem is to minimize the objective function, i.e the maximum distance travelled by any of the couriers:
+\begin{equation}
+     \min \max_{c} total\_distance[c]
+\end{equation}
+
+
+
+\subsection{Validation}
+\subsubsection{Combining the strategies}
+In order to test and validate our model we have built different configurations that combine the different strategies presented in the previous sections. We identify the following keywords:
+\begin{itemize}
+    \item \textbf{plain}: basic model without symmetry breaking constraints. Here, both global \eqref{eq:load1} and non-global \eqref{eq:load2} constraints for the capacities have been separately tested\footnote{The results are presented only for hard instances, in which we obtained interesting results.}.
+    \item \textbf{sym}: plain model using both symmetry constraints \eqref{eq:sym1} and \eqref{eq:sym2}.
+    \item \textbf{sym\_simple}: plain model using only the simple symmetry constraint defined in \eqref{eq:sym1}.
+    \item \textbf{lnsN}: plain model implementing \textit{Large Neighborhood Search}. 
+    \textbf{Sequential search} on (\textit{assign}, \textit{path}) with \textit{dom\_w\_deg} and \textit{indomain\_random}; 
+    \textbf{relax and reconstruct} on \textit{assign} with N\% of reused values upon restart;
+    \textbf{luby restart} with $scale = 100$ to avoid getting stuck in deep regions of the search tree.    
+\end{itemize}
+
+The models tested are a configuration of one or more of those keywords, combining together their specific features. Moreover, every model have been tested using \textit{gecode} and \textit{chuffed} solvers\footnote{\textit{Chuffed} is not compatible with LNS and couldn't find a solution for any of the hard instances.}.
+\subsubsection{Experimental results}
+\paragraph{Soft instaces} Results of the soft instances are shown in Table \ref{tab:soft_results}.
+\begin{itemize}
+    \item \textbf{Lower bounds constraints:} In almost every instance, optimal results have been proven by the lower bound constraint which was able to cut the search space after reaching it, especially in those models where symmetry breaking was not handled.  
+    \item \textbf{Symmetry breaking constraints:} Turned out to be the key technique to effectively reduce the search space of the solution by quickly lowering the optimal value towards the bound set by the lower bound constraint: models handling symmetry returned the best result, considering the average time to solve an instance.
+    \item \textbf{Large Neighborhood Search:} When dealing with relatively small spaces of solution LNS is not the best idea in terms of proving optimality: some of the instances returned an optimal value but without halting in the time limit.
+    \item \textbf{Solvers:} In most of the instances, \textit{chuffed} solver was able to effectively reduce the search space even with models that weren't exploiting bound and symmetry constraints, while \textit{gecode} couldn't. Nevertheless, the latter is preferable since most of the search space annotation were not supported in \textit{chuffed}, as well as the LNS.   
+    \item \textbf{Load constraints:} We haven't noticed drastic improvements nor differences in expressing the load constraint with global rather than custom.
+\end{itemize}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|c|ccccc|ccc|} % \makecell[l]{lns90\\[-0.3em]sym\\[-0.3em]simple}
+\hline
+& \multicolumn{5}{c|}{Gecode} & \multicolumn{3}{c|}{Chuffed} \\ \cline{2-9} 
+Inst. & $plain$ & $sym$ & $\makecell[l]{sym\\[-0.3em]simple}$ & $lns90$ & $\makecell[l]{lns90\\[-0.3em]sym}$ &  $plain$ & $sym$ & $\makecell[l]{sym\\[-0.3em]simple}$ \\ \hline
+1  & \textbf{14}  & \textbf{14}  & \textbf{14}  & 14           & 14           & \textbf{14}  & \textbf{14}  & \textbf{14}  \\
+2  & \textbf{226} & \textbf{226} & \textbf{226} & \textbf{226} & \textbf{226} & \textbf{226} & \textbf{226} & \textbf{226} \\
+3  & \textbf{12}  & \textbf{12}  & \textbf{12}  & 12           & 12           & \textbf{12}  & \textbf{12}  & \textbf{12} \\
+4  & \textbf{220} & \textbf{220} & \textbf{220} & \textbf{220} & \textbf{220} & \textbf{220} & \textbf{220} & \textbf{220} \\
+5  & \textbf{206} & \textbf{206} & \textbf{206} & \textbf{206} & \textbf{206} & \textbf{206} & \textbf{206} & \textbf{206} \\
+6  & \textbf{322} & \textbf{322} & \textbf{322} & \textbf{322} & \textbf{322} & \textbf{322} & \textbf{322} & \textbf{322} \\
+7  & \textbf{167} & \textbf{167} & \textbf{167} & \textbf{167} & \textbf{167} & \textbf{167} & \textbf{167} & 399 \\
+8  & \textbf{186} & \textbf{186} & \textbf{186} & \textbf{186} & \textbf{186} & \textbf{186} & \textbf{186} & \textbf{186} \\
+9  & \textbf{436} & \textbf{436} & \textbf{436} & \textbf{436} & \textbf{436} & \textbf{436} & \textbf{436} & \textbf{436} \\
+10 & \textbf{244} & \textbf{244} & \textbf{244} & \textbf{244} & \textbf{244} & \textbf{244} & \textbf{244} & \textbf{244} \\ \hline
+\end{tabular}
+\caption{Results on soft instances. In bold, optimal results.}
+\label{tab:soft_results}
+\end{table}
+
+\paragraph{Hard instaces} Results of the hard instances are presented in Table \ref{tab:hard_results}.
+\begin{itemize}
+    % \item \textbf{Lower bounds constraints:} The same.  
+    \item \textbf{Symmetry breaking constraints:} For solving hard instances they mainly added overhead to the solving process, by halting at the time limit with no solution in more than $80$\% of the instances. A simpler symmetry breaking constraint consisting in only \eqref{eq:sym1} helped computing the solution but with no improvements with respect to other strategies.
+    \item \textbf{Large Neighborhood Search:} In hard instances LNS have been the key to explore better the search space and returning optimal solution for some of the instances.
+    \item \textbf{Solvers:} \textit{chuffed} was not able to return solutions on hard instances, therefore only \textit{gecode} results have been presented.
+    \item \textbf{Load constraints:} When dealing with hard instances the global constraint \eqref{eq:load1} achieved way worse results in average, with a very interesting result: instance 17 has been solved with the best objective value by our \textbf{plain} model with custom constraint \eqref{eq:load2}.  
+\end{itemize}
+
+\begin{table}[ht] 
+\centering
+\begin{tabular}{|c|cccccccccc|} % \makecell[l]{lns90\\[-0.3em]sym\\[-0.3em]simple}
+\hline
+ & \multicolumn{10}{c|}{Gecode}        \\ \cline{2-11} 
+Inst. & $\makecell[l]{plain\\[-0.3em]\eqref{eq:load1}}$ & $\makecell[l]{plain\\[-0.3em]\eqref{eq:load2}}$ & $sym$ & $\makecell[l]{sym\\[-0.3em]simple}$ & $lns90$ & $lns94$ & $\makecell[l]{lns90\\[-0.3em]sym}$ & $\makecell[l]{lns94\\[-0.3em]sym}$ & $\makecell[l]{lns90\\[-0.3em]sym\\[-0.3em]simple}$ & $\makecell[l]{lns94\\[-0.3em]sym\\[-0.3em]simple}$  \\ \hline
+11 & 1093 & 1131 & N/A & N/A & 530 & 505 & N/A & N/A & 519 & 575 \\
+12 & N/A &	1072 &	N/A &	N/A 	& 368	& \textbf{346}	& N/A &	N/A	& 368	& 385 \\
+13 &	1070 &	1214 &	1204 &	1006 &	636 &	682 &	678 &	668 &	666 &	598 \\
+14 & 2319	& 1513	& N/A	& 2125	& 783	& 806	& N/A	& N/A	& 773	& 786 \\
+15 &	1354 &	1182 &	N/A &	1617 &	772 &	773 &	925 &	871 &	754 &	793 \\
+16 &	N/A &	578 &	N/A &	N/A &	\textbf{286} &	\textbf{286} &	N/A &	N/A &	\textbf{286} &	\textbf{286} \\
+17 &	3048 &	1105 &	2987 &	2963 &	1151 &	1212 &	N/A &	N/A &	1155 &	1214 \\
+18 &	1462 &	1206 &	N/A	& 2003	& 697	& 719	& N/A	& N/A	& 665	& 727 \\
+19 &	N/A &	1248 &	N/A &	1717 &	\textbf{334} &	\textbf{334} &	N/A &	N/A &	336 &	335 \\
+20 &	4360 &	1365 &	N/A &	3665 &	1059 &	1091 &	N/A &	N/A &	1118 &	1142 \\
+21 &	N/A	& 1763	& N/A	& 1712	& 607	& 602	 & N/A &	N/A &	591	 & 587  \\
+\hline
+\end{tabular}
+\caption{Results on hard instances. In bold, optimal results.}
+\label{tab:hard_results}
+\end{table}
