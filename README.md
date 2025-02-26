@@ -1,20 +1,40 @@
 # Multiple courier satisfaction problem
+
+Given a set of items and a fleet of couriers, together with the respective weights and capacities, the
+MCP problem consists in finding a route for each courier so to deliver each item to its corresponding
+location. The goal is to minimize the maximum distance travelled by any of the courier.  
+
 In this report, we will explore how the problem of the Multiple Couriers Planning (MCP) is modeled
 and discuss various approaches to address it: Constraint Programming (CP), Satisfiability Modulo
 Theories (SMT) and Mixed-Integer Linear Programming (MIP). The project was completed by a group
 of three, with the modeling phase and boundary formula derivation done collaboratively. 
 
-_Find report in repository: REPORT.pdf_
+_Find report in repository: CDMO_Report.pdf_
+
+## Getting Started  
+### Installation  
+1. Clone the repository:  
+   ```bash
+   git clone https://github.com/jananikolovska/CDMO.git
+   ```  
 
 ### **Setup Docker** following the next steps: <br/> 
 ---
 1. Download and open Docker
-2. `docker build -t mcp_cdmo .`
-3. `docker run -v "$(pwd):/app" --name cdmo -it mcp_cdmo`
+2. ```bash
+   docker build -t mcp_cdmo .
+   ```
+3. ```bash
+   docker run -v "$(pwd):/app" --name cdmo -it mcp_cdmo
+   ```
 
 ### **Run cp.py** on setup-ed docker <br/>
 ---
-Run command: `python3 cp.py`  <br/><br/>
+Run command: 
+```bash 
+python3 cp.py
+```
+
 Help menu displaying changeable parameters:
 ```
 usage: cp.py [-h] [--models {all,sym,lns,plain,custom}] [--instances INSTANCES] [--solvers {all,gecode,chuffed}] [--save SAVE] [--results RESULTS] [--time-limit TIME_LIMIT]
@@ -41,7 +61,10 @@ optional arguments:
 
 ### **Run smt.py** on setup-ed docker <br/>
 ---
-Run command: `python3 smt.py` <br/><br/>
+Run command: 
+```bash 
+python3 smt.py
+```
 Help menu displaying changeable parameters:
 ```
 usage: smt.py [-h] [--instances-folder INSTANCES_FOLDER] [--results-folder RESULTS_FOLDER] [--results-subfolder-name RESULTS_SUBFOLDER_NAME]
@@ -67,7 +90,11 @@ optional arguments:
 ### **Run mip.py** on setup-ed docker <br/>
 ---
 
-Run command: `python3 mip.py` <br/><br/>
+Run command: 
+```bash
+python3 mip.py
+```
+
 Help menu displaying changeable parameters:
 
 ```
@@ -97,6 +124,8 @@ optional arguments:
 
 ### **Run check_solutions.py** on setup-ed docker <br/>
 ---
-`python3 check_solution.py instances results/`
+```bash
+python3 check_solution.py instances results/
+```
 
 
